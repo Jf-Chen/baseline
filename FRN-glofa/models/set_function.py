@@ -10,6 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 # 看作是MLP
+# 为了防止出bug,应该在forward的输入中添加train_shot和query_shot,而不是初始化后就一成不变
 class SetFunction(nn.Module):
     def __init__(self, train_way,train_shot, resolution,input_dimension, output_dimension):
         super(SetFunction, self).__init__()# nn.Module.__init()__
@@ -34,7 +35,7 @@ class SetFunction(nn.Module):
             nn.Linear(input_dimension * 2, output_dimension),
         )
 
-    def forward(self, support_embeddings, level):
+    def forward(self, support_embeddings, level,train_way,train_shot, resolution):
         if level == 'task':
             
             psi_output = self.psi(support_embeddings) #[
@@ -47,11 +48,16 @@ class SetFunction(nn.Module):
             
             return rho_output
         elif level == 'class':
-            psi_output = self.psi(support_embeddings)
+            psi_output = self.psi(support_embeddings) 
             rho_input = torch.cat([psi_output, support_embeddings], dim=2)
-            rho_input = rho_input.view(self.train_way, self.train_shot,self.resolution, -1)
+            rho_input = rho_input.view(train_way, train_shot,resolution, -1)
             rho_input = torch.sum(rho_input, dim=1)
             
+            
+            
             rho_output = torch.nn.functional.relu6(self.rho(rho_input)) / 6 
+            
+            
+            
             return rho_output
         # level = balance 不要了
