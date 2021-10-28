@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from .backbones import Conv_4,ResNet
 from models.set_function import SetFunction
-
+import pdb
 
 
 class FRN(nn.Module):
@@ -99,56 +99,22 @@ class FRN(nn.Module):
 
         Q_bar = query.matmul(hat).mul(rho) # way, way*query_shot*resolution, d
 
-        dist = (Q_bar-query.unsqueeze(0)).pow(2).sum(2).permute(1,0) # way*query_shot*resolution, way
+        #----------去掉了unsqueeze(),--------------------
+        #----原因，原本query输入是[way*query_shot*resolution, d]
+        #----------而现在query输入是[way,way*query_shot*resolution, d]
+        #----------代表使用了不同mask的query
+        #----------不过这样计算出来的dist是正确的吗？-----------------
         
-        return dist
         
+        # dist = (Q_bar-query.unsqueeze(0)).pow(2).sum(2).permute(1,0) # way*query_shot*resolution, way # 这是原本的写法
         
-    def get_recon_dist_glofa(self,query,support,alpha,beta,Woodbury=True):
-    
-
-        # correspond to kr/d in the paper
-        reg = support.size(1)/support.size(2)
-        
-        # correspond to lambda in the paper
-        lam = reg*alpha.exp()+1e-6
-
-        # correspond to gamma in the paper
-        rho = beta.exp()
-
-        st = support.permute(0,2,1) # way, d, shot*resolution
-
-        if Woodbury:
-            # correspond to Equation 10 in the paper
-            
-            sts = st.matmul(support) # way, d, d
-            m_inv = (sts+torch.eye(sts.size(-1)).to(sts.device).unsqueeze(0).mul(lam)).inverse() # way, d, d
-            hat = m_inv.matmul(sts) # way, d, d
-        
-        else:
-            # correspond to Equation 8 in the paper
-            
-            sst = support.matmul(st) # way, shot*resolution, shot*resolution
-            m_inv = (sst+torch.eye(sst.size(-1)).to(sst.device).unsqueeze(0).mul(lam)).inverse() # way, shot*resolution, shot*resolutionsf 
-            hat = st.matmul(m_inv).matmul(support) # way, d, d
-            
-            
-        #---------唯一的变化就是Q_bar----------# 
-        # 原本的query是          [(batch_size-train_way*train_shot)*resolution,d]
-        # 现在的query是[train_way,(batch_size-train_way*train_shot)*resolution,d]
-        # 需要做的是直接相乘
-        # 需要输出dist=[1875, 5]
-        # query [5,1875,640], hat [5,640,640]
-        Q_bar = query.matmul(hat).mul(rho) # way, way*query_shot*resolution, d
-
-        dist = (Q_bar-query).pow(2).sum(2).permute(1,0) # [1875, 5] way*query_shot*resolution, way
-        #--------------end------------------#
-        
+        dist = (Q_bar-query).pow(2).sum(2).permute(1,0)
+        #---------------end-----------------------------#
         return dist
 
 
     
-    def get_neg_l2_dist(self,inp,way,shot,query_shot,return_support=False):
+    def get_neg_l2_dist(self,inp,train_way,train_shot,query_shot,return_support=False):
         
         resolution = self.resolution
         d = self.d
@@ -163,12 +129,11 @@ class FRN(nn.Module):
         # query = feature_map[way*shot:].view(way*query_shot*resolution, d) #[1875, 640]
         
         #-------在这里插入glofa-------------
-        train_way=way
-        train_shot=shot
+
         support_embeddings = feature_map[:train_way*train_shot] # [25,25,640]
         query_embeddings = feature_map[train_way*train_shot:] # [75,25,640]
-        mask_task=self.f_task(support_embeddings,level='task')
-        mask_class=self.f_class(support_embeddings, level='class')
+        mask_task=self.f_task(support_embeddings,level='task',train_way=train_way,train_shot=train_shot, resolution=resolution)
+        mask_class=self.f_class(support_embeddings, level='class',train_way=train_way,train_shot=train_shot, resolution=resolution)
         
         
         # print("train_way: ",train_way,"train_shot",train_shot,"support_embeddings: ",support_embeddings.size(),"query_embeddings:",query_embeddings.size(),"mask_task:",mask_task.size(),"mask_class:",mask_class.size())
@@ -180,7 +145,7 @@ class FRN(nn.Module):
         # mask_class: torch.Size([5, 25, 640])
         
         masked_support_embeddings = support_embeddings.view(train_way,train_shot, resolution,-1) * \
-            (1 + mask_task ) * (1 + mask_class )# [5, 5, 25, 640]
+            (1 + mask_task ) * (1 + mask_class.unsqueeze(0).transpose(0, 1) )# [5, 5, 25, 640]
         masked_query_embeddings =query_embeddings.unsqueeze(0).expand(train_way, -1, -1,-1) * \
             (1 + mask_task) * (1 + mask_class.unsqueeze(0).transpose(0, 1) ) # [5, 75, 25, 640]
         
@@ -197,8 +162,8 @@ class FRN(nn.Module):
         
         
         #----------end-----------------------------#
-        recon_dist = self.get_recon_dist_glofa(query=query,support=support,alpha=alpha,beta=beta) # [3750, 10]
-        neg_l2_dist = recon_dist.neg().view(way*query_shot,resolution,way).mean(1) # [150, 10]
+        recon_dist = self.get_recon_dist(query=query,support=support,alpha=alpha,beta=beta) # [3750, 10]
+        neg_l2_dist = recon_dist.neg().view(train_way*query_shot,resolution,train_way).mean(1) # [150, 10]
         """
         recon_dist = self.get_recon_dist_glofa(query=query,support=support,alpha=alpha,beta=beta) # way*query_shot*resolution, way # [3750, 10]
         neg_l2_dist = recon_dist.neg().view(way*query_shot,resolution,way).mean(1) # way*query_shot, way # [150, 10]
@@ -214,10 +179,11 @@ class FRN(nn.Module):
 
 
     def meta_test(self,inp,way,shot,query_shot):
+        
 
         neg_l2_dist = self.get_neg_l2_dist(inp=inp,
-                                        way=way,
-                                        shot=shot,
+                                        train_way=way,
+                                        train_shot=shot,
                                         query_shot=query_shot)
 
         _,max_index = torch.max(neg_l2_dist,1)
@@ -252,8 +218,8 @@ class FRN(nn.Module):
         
         
         neg_l2_dist, support = self.get_neg_l2_dist(inp=inp,
-                                                    way=self.way,
-                                                    shot=self.shots[0],
+                                                    train_way=self.way,
+                                                    train_shot=self.shots[0],
                                                     query_shot=self.shots[1],
                                                     return_support=True)
         
