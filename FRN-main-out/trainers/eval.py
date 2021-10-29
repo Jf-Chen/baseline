@@ -6,7 +6,7 @@ import torch.nn.functional as F
 sys.path.append('..')
 from datasets import dataloaders
 from tqdm import tqdm
-
+import pdb
 
 def get_score(acc_list):
 
@@ -34,6 +34,10 @@ def meta_test(data_path,model,way,shot,pre,transform_type,query_shot=16,trial=10
 
         inp = inp.cuda()
         max_index = model.meta_test(inp,way=way,shot=shot,query_shot=query_shot)
+        
+        dist=model.out_neg_l2_dist(inp,way=way,shot=shot,query_shot=query_shot)
+        
+        pdb.set_trace()
 
         acc = 100*torch.sum(torch.eq(max_index,target)).item()/query_shot/way
         acc_list.append(acc)

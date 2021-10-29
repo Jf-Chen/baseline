@@ -243,5 +243,7 @@ class Train_Manager:
                                         transform_type=args.test_transform_type,
                                         query_shot=args.test_query_shot,
                                         trial=10000)
+                                        
+                # out_dist=out_neg_l2_dist()
 
                 logger.info('%d-way-%d-shot acc: %.2f\t%.2f'%(args.test_way,shot,mean,interval))
