@@ -235,6 +235,8 @@ class Train_Manager:
 
             for shot in args.test_shot:
 
+                #---------------------------------------------#
+                """
                 mean,interval = meta_test(data_path=self.pm.test,
                                         model=model,
                                         way=args.test_way,
@@ -243,7 +245,44 @@ class Train_Manager:
                                         transform_type=args.test_transform_type,
                                         query_shot=args.test_query_shot,
                                         trial=10000)
+                """
+                #---------------------------------------------#
                                         
+                mean,interval,list_dist,list_max_index,target=meta_test(data_path=self.pm.test,
+                                        model=model,
+                                        way=args.test_way,
+                                        shot=shot,
+                                        pre=args.pre,
+                                        transform_type=args.test_transform_type,
+                                        query_shot=args.test_query_shot,
+                                        trial=10000)
                 # out_dist=out_neg_l2_dist()
+                
 
                 logger.info('%d-way-%d-shot acc: %.2f\t%.2f'%(args.test_way,shot,mean,interval))
+                
+                #-------------画图--------------------#
+                print("list_dist",list_dist.size())
+                print("list_max",list_max.size())
+                
+                # 正确结果：x,dist[x,target]
+                # 实际结果：x,dist[x,max_index]
+                # 将dist排序values,indices = torch.sort(dist,dim=1,descending=false)
+                
+                
+                
+                x=torch.range(0,args.test_way*args.test_query_shot) #横坐标
+                line_result=list_dist[x,list_max_index] #
+                line_target=list_dist[x,target]
+                values,indices = torch.sort(list_dist,dim=1,descending=false)
+                
+                
+                import matplotlib.pyplot as plt
+                fig,ax=plt.subplots()
+                ax.plot(x,line_result,label="get")
+                ax.plot(x,line_result,label="wish")
+                for i in range(0,test_way):
+                    ax.plot(x,values[x,i],lable="%s" % i);
+                
+                import pdb
+                pdb.set_trace()
