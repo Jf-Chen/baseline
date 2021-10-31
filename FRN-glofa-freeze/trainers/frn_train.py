@@ -29,11 +29,14 @@ def auxrank(support):
 
 def default_train(train_loader,model,optimizer,writer,iter_counter):
     
+    optimizerA=optimizer[0]
+    optimizerB=optimizer[1]
+    
     way = model.way
     query_shot = model.shots[-1]
     target = torch.LongTensor([i//query_shot for i in range(query_shot*way)]).cuda()
     criterion = nn.NLLLoss().cuda()
-    lr = optimizer.param_groups[0]['lr']
+    lr = optimizerA.param_groups[0]['lr']
 
     writer.add_scalar('lr',lr,iter_counter)
     writer.add_scalar('scale',model.scale.item(),iter_counter)
@@ -53,9 +56,17 @@ def default_train(train_loader,model,optimizer,writer,iter_counter):
         frn_loss = criterion(log_prediction,target)
         aux_loss = auxrank(s)
         loss = frn_loss + aux_loss
-        optimizer.zero_grad()
+        
+        
+        
+        optimizerA.zero_grad()
+        optimizerB.zero_grad()
         loss.backward()
-        optimizer.step()
+        
+        
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
         _,max_index = torch.max(log_prediction,1)
         acc = 100*torch.sum(torch.eq(max_index,target)).item()/query_shot/way

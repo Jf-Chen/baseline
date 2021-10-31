@@ -73,18 +73,54 @@ def get_opt(model,args):
 
     if args.opt == 'adam':
         optimizer = optim.Adam(model.parameters(),lr=args.lr,weight_decay=args.weight_decay)
+        if args.decay_epoch is not None:
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
+        else:
+            scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=args.epoch,gamma=args.gamma)
+    
     elif args.opt == 'sgd':
         optimizer = optim.SGD(model.parameters(),lr=args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
-
-    if args.decay_epoch is not None:
+        if args.decay_epoch is not None:
         scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
+        else:
+            scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=args.epoch,gamma=args.gamma)
+    #---------------------给不同的层设置不同的学习率-------------------#
+        #-----如果scheduler不同，那么应该设置两个optimizer,两个scheduler
+    #--------------------------end-------------------------------------#
+    elif args.opt =='freeze':
+        optimizerA = torch.optim.SGD(model.feature_extractor.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+        optimizerB = torch.optim.SGD(model.f_task.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+        lr_schedulerA = optim.lr_scheduler.MultiStepLR(optimizerA,milestones=args.decay_epoch,gamma=args.gamma)
+        lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.decay_epoch,gamma=args.gamma)
+        optimizer=[optimizerA,optimizerB]
+        scheduler=[lr_schedulerA,lr_schedulerB]
 
-    else:
-        scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=args.epoch,gamma=args.gamma)
-
+    
+    
+    
+    
     return optimizer,scheduler
+#
 
+#-------------参考-----------------#
+    """
+    optimizerA = torch.optim.SGD(parametersA, args.lr,momentum=args.sgd_momentum,weight_decay=args.weight_decay)
+    optimizerB = torch.optim.SGD(parametersB, args.lr_glofa,momentum=args.sgd_momentum,weight_decay=args.weight_decay)
+    lr_schedulerA = torch.optim.lr_scheduler.MultiStepLR(optimizerA,milestones=[100, 150], last_epoch=args.start_epoch - 1)
+    lr_schedulerB = torch.optim.lr_scheduler.ExponentialLR(optimizerB,gamma=0.99)
+    """
+    #-----------实现------------------#
+    #   原本的
+    #   optimizer = optim.SGD(model.parameters(),lr=args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+    #   scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
+    #   需要给args添加sgd_momentumA/B,weight_decayA/B,milestonesA/B,
+    optimizerA = torch.optim.SGD(model.feature_extractor.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+    optimizerB = torch.optim.SGD(model.f_task.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+    lr_schedulerA = optim.lr_scheduler.MultiStepLR(optimizerA,milestones=args.decay_epoch,gamma=args.gamma)
+    lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.decay_epoch,gamma=args.gamma)
 
+    #-----------end---------------------#
+#-------------------end----------#
 
 class Path_Manager:
 
@@ -154,6 +190,9 @@ class Train_Manager:
         logger = self.logger
 
         optimizer,scheduler = get_opt(model,args)
+        
+        lr_schedulerA=scheduler[0]
+        lr_schedulerB=scheduler[1]
 
         val_shot = args.train_shot
         test_way = args.test_way
@@ -209,7 +248,11 @@ class Train_Manager:
 
                 model.train()
 
-            scheduler.step()
+            lr_schedulerA.step()
+            if (e+1)% 100==0: #args.episode_gap
+                lr_schedulerB.step()
+        
+
 
         logger.info('training finished!')
         if args.no_val:
