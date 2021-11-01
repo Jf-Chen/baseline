@@ -74,14 +74,13 @@ def get_opt(model,args):
     if args.opt == 'adam':
         optimizer = optim.Adam(model.parameters(),lr=args.lr,weight_decay=args.weight_decay)
         if args.decay_epoch is not None:
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
+            scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
         else:
             scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=args.epoch,gamma=args.gamma)
-    
     elif args.opt == 'sgd':
         optimizer = optim.SGD(model.parameters(),lr=args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
         if args.decay_epoch is not None:
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
+            scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
         else:
             scheduler = optim.lr_scheduler.StepLR(optimizer,step_size=args.epoch,gamma=args.gamma)
     #---------------------给不同的层设置不同的学习率-------------------#
