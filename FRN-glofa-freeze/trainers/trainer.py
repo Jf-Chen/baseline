@@ -65,9 +65,9 @@ def train_parser():
     
     #-------------为glofa添加--------------------#
     parser.add_argument('--glofa_point', type=int, nargs='+', default=(20,30,40))
-    parser.add_argument('--glofa_lr', type=float, default=0.01)
+    parser.add_argument('--glofa_lr', type=float, default=0.01) # 原本是0.01
     parser.add_argument('--glofa_gamma', type=float, default=0.2)
-    parser.add_argument('--glofa_wd', type=float, default=0.0005)  # weight decay
+    parser.add_argument('--glofa_wd', type=float, default=0.005)  # weight decay 原本是0.0005
     parser.add_argument('--glofa_mo', type=float, default=0.9)  # momentum
     parser.add_argument('--glofa_episode_gap', type=int, default=200)
     #----------------end---------------------#
@@ -98,7 +98,7 @@ def get_opt(model,args):
     elif args.opt =='freeze':
         # A是FRN用的，B是glofa用的
         optimizerA = torch.optim.SGD(model.feature_extractor.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
-        optimizerB = torch.optim.SGD(model.f_task.parameters(), glofa_lr,momentum=0.9,weight_decay=args.glofa_wd,nesterov=True)
+        optimizerB = torch.optim.SGD(model.f_task.parameters(), args.glofa_lr,momentum=0.9,weight_decay=args.glofa_wd,nesterov=True)
         lr_schedulerA = optim.lr_scheduler.MultiStepLR(optimizerA,milestones=args.decay_epoch,gamma=args.gamma)
         lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.glofa_point,gamma=args.glofa_gamma)
         optimizer=[optimizerA,optimizerB]
@@ -258,11 +258,9 @@ class Train_Manager:
 
                 model.train()
             
-            if (e+1)% (10000/100)==0: #frn原本是更改100次
-                lr_schedulerA.step()
-            
-            if (e+1)% args.glofa_episode_gap==0: #args.episode_gap
-                lr_schedulerB.step()
+            lr_schedulerA.step()#frn原本是更改100次
+            lr_schedulerB.step() #glofa原本是迭代1000
+
         
 
 

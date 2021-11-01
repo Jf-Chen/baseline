@@ -61,13 +61,14 @@ def default_train(train_loader,model,optimizer,writer,iter_counter):
         
         #------将150个epch改为10000个-----------#
         # optimizerA.zero_grad()
+        
+        optimizerA.zero_grad()
         optimizerB.zero_grad() # 更新f_mask
-        if((iter_counter+1)%100==0):
-            optimizerA.zero_grad()
+        
         loss.backward()
+        
         optimizerB.step()
-        if((iter_counter+1)%100==0):
-            optimizerA.step()
+        optimizerA.step()
         #----------end------------------#
         
         # optimizer.zero_grad()
