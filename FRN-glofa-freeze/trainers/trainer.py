@@ -62,6 +62,14 @@ def train_parser():
     parser.add_argument("--test_transform_type",help="size transformation type during inference",type=int)
     parser.add_argument("--val_trial",help="number of meta-testing episodes during validation",type=int,default=1000)
     parser.add_argument("--detailed_name", help="whether include training details in the name",action="store_true")
+    
+    #-------------为glofa添加--------------------#
+    parser.add_argument('--glofa_point', type=int, nargs='+', default=(20,30,40))
+    parser.add_argument('--glofa_lr', type=float, default=0.01)
+    parser.add_argument('--glofa_gamma', type=float, default=0.2)
+    parser.add_argument('--glofa_wd', type=float, default=0.0005)  # weight decay
+    parser.add_argument('--glofa_mo', type=float, default=0.9)  # momentum
+    #----------------end---------------------#
 
     args = parser.parse_args()
 
@@ -87,10 +95,11 @@ def get_opt(model,args):
         #-----如果scheduler不同，那么应该设置两个optimizer,两个scheduler
     #--------------------------end-------------------------------------#
     elif args.opt =='freeze':
+        # A是FRN用的，B是glofa用的
         optimizerA = torch.optim.SGD(model.feature_extractor.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
-        optimizerB = torch.optim.SGD(model.f_task.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
+        optimizerB = torch.optim.SGD(model.f_task.parameters(), glofa_lr,momentum=0.9,weight_decay=args.glofa_wd,nesterov=True)
         lr_schedulerA = optim.lr_scheduler.MultiStepLR(optimizerA,milestones=args.decay_epoch,gamma=args.gamma)
-        lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.decay_epoch,gamma=args.gamma)
+        lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.glofa_point,gamma=args.glofa_gamma)
         optimizer=[optimizerA,optimizerB]
         scheduler=[lr_schedulerA,lr_schedulerB]
 
@@ -113,11 +122,12 @@ def get_opt(model,args):
     #   optimizer = optim.SGD(model.parameters(),lr=args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
     #   scheduler = optim.lr_scheduler.MultiStepLR(optimizer,milestones=args.decay_epoch,gamma=args.gamma)
     #   需要给args添加sgd_momentumA/B,weight_decayA/B,milestonesA/B,
+    """
     optimizerA = torch.optim.SGD(model.feature_extractor.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
     optimizerB = torch.optim.SGD(model.f_task.parameters(), args.lr,momentum=0.9,weight_decay=args.weight_decay,nesterov=args.nesterov)
     lr_schedulerA = optim.lr_scheduler.MultiStepLR(optimizerA,milestones=args.decay_epoch,gamma=args.gamma)
     lr_schedulerB = optim.lr_scheduler.MultiStepLR(optimizerB,milestones=args.decay_epoch,gamma=args.gamma)
-
+    """
     #-----------end---------------------#
 #-------------------end----------#
 
