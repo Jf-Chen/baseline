@@ -69,6 +69,7 @@ def train_parser():
     parser.add_argument('--glofa_gamma', type=float, default=0.2)
     parser.add_argument('--glofa_wd', type=float, default=0.0005)  # weight decay
     parser.add_argument('--glofa_mo', type=float, default=0.9)  # momentum
+    parser.add_argument('--glofa_episode_gap', type=int, default=200)
     #----------------end---------------------#
 
     args = parser.parse_args()
@@ -256,9 +257,11 @@ class Train_Manager:
                     logger.info('BEST!')
 
                 model.train()
-
-            lr_schedulerA.step()
-            if (e+1)% 100==0: #args.episode_gap
+            
+            if (e+1)% (10000/100)==0: #frn原本是更改100次
+                lr_schedulerA.step()
+            
+            if (e+1)% args.glofa_episode_gap==0: #args.episode_gap
                 lr_schedulerB.step()
         
 

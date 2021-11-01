@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from torch.nn import NLLLoss,BCEWithLogitsLoss,BCELoss
+import pdb
 
 
 def auxrank(support):
@@ -58,11 +59,15 @@ def default_train(train_loader,model,optimizer,writer,iter_counter):
         loss = frn_loss + aux_loss
         
         
-        
-        optimizerA.zero_grad()
-        optimizerB.zero_grad()
+        #------将150个epch改为10000个-----------#
+        # optimizerA.zero_grad()
+        optimizerB.zero_grad() # 更新f_mask
         loss.backward()
-        
+        optimizerB.step()
+        if((iter_counter+1)%100==0):
+            optimizerA.zero_grad()
+            optimizerA.step()
+        #----------end------------------#
         
         # optimizer.zero_grad()
         # loss.backward()
