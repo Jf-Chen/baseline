@@ -20,3 +20,7 @@ optimizer_args: {lr: 0.1, weight_decay: 5.e-4, milestones: [90]}
 
 save_epoch: 5
 visualize_datasets: true
+
+#--------添加的-------#
+num_workers: 2
+#---------end---------#

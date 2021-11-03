@@ -1,0 +1,4 @@
+print("svname==",svname,"args.tag==",args.tag,"save_path==",save_path)
+
+(Pdb) print("svname==",svname,"args.tag==",args.tag,"save_path==",save_path)
+svname== pretrain args.tag== None save_path== ./save/pretrain
