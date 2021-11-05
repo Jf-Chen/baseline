@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from .backbones import Conv_4,ResNet
-
+import pdb
 
 class FRN(nn.Module):
     
@@ -47,6 +47,11 @@ class FRN(nn.Module):
 
         batch_size = inp.size(0)
         feature_map = self.feature_extractor(inp)
+        print("in FRN.py get_feature_map()")
+        
+        pdb.set_trace()
+        
+        
         
         if self.resnet:
             feature_map = feature_map/np.sqrt(640)
