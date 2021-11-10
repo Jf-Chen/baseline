@@ -15,7 +15,7 @@ import models
 import utils
 import utils.few_shot as fs
 from datasets.samplers import CategoriesSampler
-
+import pdb
 
 def main(config):
     #---添加的部分参数-----#
@@ -104,7 +104,8 @@ def main(config):
         eval_fs = False
 
     ########
-
+    pdb.set_trace()
+    
     #### Model and Optimizer ####
 
     if config.get('load'):
@@ -129,6 +130,7 @@ def main(config):
             config['optimizer'], **config['optimizer_args'])
 
     ########
+    pdb.set_trace()
     
     max_epoch = config['max_epoch']
     save_epoch = config.get('save_epoch')
