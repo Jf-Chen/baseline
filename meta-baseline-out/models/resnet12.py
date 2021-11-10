@@ -106,7 +106,7 @@ def resnet12_wide():
     return ResNet12([64, 160, 320, 640])
     
 #-----------------以下是我添加的--------------#
-class ResNet12_whithout_avgpool(nn.Module):
+class ResNet12_without_avgpool(nn.Module):
 
     def __init__(self, channels):
         super().__init__()
