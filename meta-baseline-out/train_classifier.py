@@ -104,7 +104,6 @@ def main(config):
         eval_fs = False
 
     ########
-    pdb.set_trace()
     
     #### Model and Optimizer ####
 
@@ -130,7 +129,6 @@ def main(config):
             config['optimizer'], **config['optimizer_args'])
 
     ########
-    pdb.set_trace()
     
     max_epoch = config['max_epoch']
     save_epoch = config.get('save_epoch')

@@ -8,9 +8,11 @@ eval_fs_epoch: 5
 
 model: classifier
 model_args:
-    encoder: resnet12
+    # encoder: resnet12
+    encoder: resnet12-wide_without_avgpool
     encoder_args: {}
-    classifier: linear-classifier 
+    # classifier: linear-classifier 
+    classifier: linear-classifier_without_avgpool
     classifier_args: {n_classes: 64}
 
 batch_size: 128

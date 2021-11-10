@@ -15,13 +15,18 @@ class Classifier(nn.Module):
                  classifier, classifier_args):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
-        classifier_args['in_dim'] = self.encoder.out_dim
+        classifier_args['in_dim'] = self.encoder.out_dim 
+        classifier_args['resolution'] = 25
         self.classifier = models.make(classifier, **classifier_args)
-
+        # encoder == resnet12 
+        # classifier == linear-classifier
+        # classifier_args {'n_classes': 64, 'in_dim': 512}
+        
     def forward(self, x):
-        x = self.encoder(x)
-        x = self.classifier(x)
-        return x
+        # x [128, 3, 80, 80]
+        x2 = self.encoder(x) # x2 [128, 512, 5, 5]
+        x3 = self.classifier(x2) # x3 形状不匹配
+        return x3
 
 
 @register('linear-classifier')
@@ -53,3 +58,17 @@ class NNClassifier(nn.Module):
     def forward(self, x):
         return utils.compute_logits(x, self.proto, self.metric, self.temp)
 
+#---------------以下是我添加的--------------#
+@register('linear-classifier_without_avgpool')
+class LinearClassifier_without_avgpool(nn.Module):
+
+    def __init__(self, resolution,in_dim, n_classes):
+        super().__init__()
+        self.linear = nn.Linear(resolution*in_dim, n_classes)
+
+    def forward(self, x):
+        x1=x
+        x2=x.view(x.size()[0],-1)
+        x3=self.linear(x2)
+        return self.linear(x3)
+#----------------end------------------------#

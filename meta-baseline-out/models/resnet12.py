@@ -91,7 +91,7 @@ class ResNet12(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         # 这时候应该返回5x5x640
         return x
 
@@ -104,4 +104,57 @@ def resnet12():
 @register('resnet12-wide')
 def resnet12_wide():
     return ResNet12([64, 160, 320, 640])
+    
+#-----------------以下是我添加的--------------#
+class ResNet12_whithout_avgpool(nn.Module):
+
+    def __init__(self, channels):
+        super().__init__()
+
+        self.inplanes = 3
+
+        self.layer1 = self._make_layer(channels[0])
+        self.layer2 = self._make_layer(channels[1])
+        self.layer3 = self._make_layer(channels[2])
+        self.layer4 = self._make_layer(channels[3])
+
+        self.out_dim = channels[3] #去除均值之后，这个要改的
+        self.out_resolution=25 # 不同的dim，得到的resolution似乎还是一样的
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out',
+                                        nonlinearity='leaky_relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def _make_layer(self, planes):
+        downsample = nn.Sequential(
+            conv1x1(self.inplanes, planes),
+            norm_layer(planes),
+        )
+        block = Block(self.inplanes, planes, downsample)
+        self.inplanes = planes
+        return block
+
+    def forward(self, x):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        # 这时候应该返回5x5x640
+        return x
+
+
+@register('resnet12_without_avgpool')
+def resnet12_without_avgpool():
+    return ResNet12_without_avgpool([64, 128, 256, 512])
+
+
+@register('resnet12-wide_without_avgpool')
+def resnet12_wide_without_avgpool():
+    return ResNet12_without_avgpool([64, 160, 320, 640])
+#---------------end---------------------------#
 
