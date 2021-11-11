@@ -70,5 +70,5 @@ class LinearClassifier_without_avgpool(nn.Module):
         x1=x
         x2=x.view(x.size()[0],-1)
         x3=self.linear(x2)
-        return self.linear(x3)
+        return x3
 #----------------end------------------------#

@@ -152,6 +152,8 @@ def main(config):
                 aves_keys += ['fsa-' + str(n_shot)]
         aves = {k: utils.Averager() for k in aves_keys}
 
+        #----------------------------#
+        print("in range")
         # train
         model.train()
         writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
