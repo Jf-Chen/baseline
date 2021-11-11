@@ -64,11 +64,10 @@ class LinearClassifier_without_avgpool(nn.Module):
 
     def __init__(self, resolution,in_dim, n_classes):
         super().__init__()
-        self.linear = nn.Linear(resolution*in_dim, n_classes)
+        self.linear = nn.Linear(in_dim, n_classes)
 
     def forward(self, x):
-        x1=x
-        x2=x.view(x.size()[0],-1)
-        x3=self.linear(x2)
-        return x3
+        x1= x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        x2=self.linear(x1)
+        return x2
 #----------------end------------------------#

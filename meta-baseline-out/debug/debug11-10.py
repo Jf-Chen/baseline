@@ -66,6 +66,8 @@ resnet12需要加上resolution属性
 print("channels == ",channels)
 print("self.layer4",self.layer4)
 
+print("x==",x.size(),"x2==",x2.size(),"x3==",x3.size())
+print("x==",x.size(),"x2==",x2.size())
 
 
 
