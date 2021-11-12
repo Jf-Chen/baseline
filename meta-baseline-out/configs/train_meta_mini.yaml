@@ -5,10 +5,13 @@ tval_dataset_args: {split: test}
 val_dataset: mini-imagenet
 val_dataset_args: {split: val}
 
-model: meta-baseline
+# model: meta-baseline
+model: meta-baseline-out
 model_args: 
-    encoder: resnet12
+    # encoder: resnet12
+    encoder: resnet12-wide_without_avgpool
     encoder_args: {}
+# load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
 load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
 
 n_way: 5
