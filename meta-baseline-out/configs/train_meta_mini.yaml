@@ -12,7 +12,8 @@ model_args:
     encoder: resnet12-wide_without_avgpool
     encoder_args: {}
 # load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
-load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
+load_encoder: ./save/classifier_mini-imagenet_resnet12-wide_without_avgpool-linear-classifier_without_avgpool/epoch-last.pth
+
 
 n_way: 5
 n_shot: 1
