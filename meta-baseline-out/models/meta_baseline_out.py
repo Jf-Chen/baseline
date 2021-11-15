@@ -93,8 +93,10 @@ class MetaBaselineOut(nn.Module):
             # topk_index ,每个query的descriptor和一个support image最相似的descriptor_index
             descriptor_similarity=topk_value.squeeze(-1) # [4, 75, 5, 25]
             # 按照DN4的做法是取前5，然后平均
-            simi_topk_value,simi_topk_index=torch.topk(descriptor_similarity,5,-1)
-            simi_topk_sum=torch.sum(simi_topk_value,-1) # [4, 75, 5]
+            count=5
+            simi_topk_value,simi_topk_index=torch.topk(descriptor_similarity,count,-1)
+            simi_topk_sum=torch.sum(simi_topk_value,-1)/count # [4, 75, 5]
+            simi_topk_sum=simi_topk_sum # [4, 75, 5]
             # 怎么表现 descriptor_similarity 
             #-------------end-------------------------#
             logits = simi_topk_sum
