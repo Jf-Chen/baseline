@@ -67,7 +67,10 @@ class MetaBaselineOut(nn.Module):
             # 特征逐个匹配，按照相似度排序
             # 取所有特征作为loss,但要记录每个特征的相似度
             # 问题：正则化通常是给640还是25？——当前是640就给640
-            ep_per_batch= 4
+            n_way= shot_shape[1] # 5
+            n_shot= shot_shape[2] # 1
+            n_query=query_shape[1] # 15
+            ep_per_batch= shot_shape[0] # 4
             width=5
             height=5
             dim=640
@@ -92,6 +95,7 @@ class MetaBaselineOut(nn.Module):
             # 按照DN4的做法是取前5，然后平均
             simi_topk_value,simi_topk_index=torch.topk(descriptor_similarity,5,-1)
             simi_topk_sum=torch.sum(simi_topk_value,-1) # [4, 75, 5]
+            # 怎么表现 descriptor_similarity 
             #-------------end-------------------------#
             logits = simi_topk_sum
         

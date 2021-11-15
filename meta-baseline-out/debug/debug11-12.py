@@ -52,6 +52,10 @@ x_shot torch.Size([20, 640, 5, 5]) x_query torch.Size([300, 640, 5, 5])
 (Pdb) print("x_shot",x_shot.size(),"x_query",x_query.size())
 x_shot torch.Size([4, 5, 1, 16000]) x_query torch.Size([4, 75, 16000])
 
+print(logits.size())
+(Pdb) print(logits.size())
+torch.Size([4, 75, 5])
+
 
 
 

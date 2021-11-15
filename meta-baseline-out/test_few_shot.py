@@ -26,6 +26,16 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 def main(config):
+
+    #----部分参数添加到yaml-----#
+    num_workers=8 # num_workers
+    if config.get('num_workers'):
+        num_workers = config['num_workers']
+    pin_memory = True
+    if config.get("pin_memory"):
+        pin_memory=config['pin_memory']
+    #---------end----------#
+
     # dataset
     dataset = datasets.make(config['dataset'], **config['dataset_args'])
     utils.log('dataset: {} (x{}), {}'.format(
@@ -41,7 +51,7 @@ def main(config):
             dataset.label, n_batch, n_way, n_shot + n_query,
             ep_per_batch=ep_per_batch)
     loader = DataLoader(dataset, batch_sampler=batch_sampler,
-                        num_workers=8, pin_memory=True)
+                        num_workers=num_workers, pin_memory=pin_memory)
 
     # model
     if config.get('load') is None:
