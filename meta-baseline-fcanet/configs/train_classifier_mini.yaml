@@ -8,7 +8,7 @@ eval_fs_epoch: 5
 
 model: classifier
 model_args:
-    encoder: resnet12
+    encoder: resnet12-wide-fcanet
     encoder_args: {}
     classifier: linear-classifier 
     classifier_args: {n_classes: 64}
@@ -22,6 +22,6 @@ save_epoch: 5
 visualize_datasets: true
 
 #--------添加的-------#
-num_workers: 2
+num_workers: 8
 pin_memory : false
 #---------end---------#

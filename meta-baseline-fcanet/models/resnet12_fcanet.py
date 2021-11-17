@@ -68,7 +68,7 @@ class Block(nn.Module):
 
 class ResNet12_FcaNet(nn.Module):
 
-    def __init__(self, channels):
+    def __init__(self, channels, c2wh, planes, reduction, freq_sel_method):
         super().__init__()
 
         self.inplanes = 3
@@ -77,7 +77,22 @@ class ResNet12_FcaNet(nn.Module):
         self.layer2 = self._make_layer(channels[1])
         self.layer3 = self._make_layer(channels[2])
         self.layer4 = self._make_layer(channels[3])
+        
+        # 网络的卷积层的最后一层加入注意力机制
+        #----------------------------------------------------------#
+        reduction = 16
+        freq_sel_method = 'top16'
+        
+        # 原本的 c2wh = dict([(64,56), (128,28), (256,14) ,(512,7)])
+        c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
+        
+        self.relu = nn.ReLU(inplace=True)
+        planes=640 # 插在哪一层后面就是多少维
+        # self.att = MultiSpectralAttentionLayer(plane * 4, c2wh[planes], c2wh[planes],  reduction=reduction, freq_sel_method = 'top16')
+        self.att = MultiSpectralAttentionLayer(channel = planes, dct_h=c2wh[planes], dct_w=c2wh[planes],  reduction=reduction, freq_sel_method = freq_sel_method)
+        #--------------------------end-----------------------------#
 
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.out_dim = channels[3]
 
         for m in self.modules():
@@ -99,25 +114,53 @@ class ResNet12_FcaNet(nn.Module):
 
     def forward(self, x):
         
-        x=self.att(x)
+        # print("x",x.size())
+        
+        
         
         x = self.layer1(x)
+        # print("x1",x.size())
+        
         x = self.layer2(x)
+        # print("x2",x.size())
+        
         x = self.layer3(x)
+        # print("x3",x.size())
+        
         x = self.layer4(x)
+        # print("x4",x.size())
         
-        x=self.att(x)
+        x = self.att(x)
+        # print("xatt",x.size())
         
-        x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        
+        # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        x = self.avgpool(x)
+        x = x.reshape(x.size(0), -1)
+        
+        # x=self.att(x)
+        
         return x
 
 
 @register('resnet12-fcanet')
 def resnet12():
-    return ResNet12_FcaNet([64, 128, 256, 512])
+    # 需要修改对应的参数
+    # [64, 128, 256, 512] 
+    reduction = 16
+    freq_sel_method = 'top16'
+    c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
+    planes=640 # 插在哪一层后面就是多少维
+    channels=[64, 160, 320, 640]
+    return ResNet12_FcaNet(channels, c2wh, planes, reduction, freq_sel_method)
 
 
 @register('resnet12-wide-fcanet')
 def resnet12_wide_fcanet():
-    return ResNet12_FcaNet([64, 160, 320, 640])
+    reduction = 16
+    freq_sel_method = 'top16'
+    c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
+    planes=640 # 插在哪一层后面就是多少维
+    channels=[64, 160, 320, 640]
+    return ResNet12_FcaNet(channels, c2wh, planes, reduction, freq_sel_method)
 
