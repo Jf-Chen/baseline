@@ -217,6 +217,8 @@ def main(config):
                 'val {:.4f}|{:.4f}, {} {}/{} (@{})'.format(
                 epoch, aves['tl'], aves['ta'], aves['tvl'], aves['tva'],
                 aves['vl'], aves['va'], t_epoch, t_used, t_estimate, _sig))
+        
+        # epoch , train {loss.item()}|{acc}, tval {}|{}, val 
 
         writer.add_scalars('loss', {
             'train': aves['tl'],
