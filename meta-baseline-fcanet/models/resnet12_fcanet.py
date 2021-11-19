@@ -33,13 +33,10 @@ class Block(nn.Module):
         self.downsample = downsample
 
         self.maxpool = nn.MaxPool2d(2)
-        #----------------------------------------------------------#
-        # 原本的 c2wh = dict([(64,56), (128,28), (256,14) ,(512,7)])
-        c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
+        
         self.relu = nn.ReLU(inplace=True)
-        self.att = MultiSpectralAttentionLayer(planes * 4, c2wh[planes], c2wh[planes],  reduction=reduction, freq_sel_method = 'top16')
-        #--------------------------end-----------------------------#
-
+        
+        
     def forward(self, x):
         out = self.conv1(x)
         out = self.bn1(out)
@@ -86,7 +83,7 @@ class ResNet12_FcaNet(nn.Module):
         # 原本的 c2wh = dict([(64,56), (128,28), (256,14) ,(512,7)])
         c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
         
-        self.relu = nn.ReLU(inplace=True)
+        
         planes=640 # 插在哪一层后面就是多少维
         # self.att = MultiSpectralAttentionLayer(plane * 4, c2wh[planes], c2wh[planes],  reduction=reduction, freq_sel_method = 'top16')
         self.att = MultiSpectralAttentionLayer(channel = planes, dct_h=c2wh[planes], dct_w=c2wh[planes],  reduction=reduction, freq_sel_method = freq_sel_method)
