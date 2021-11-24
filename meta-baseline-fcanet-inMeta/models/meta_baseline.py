@@ -51,6 +51,7 @@ class MetaBaseline(nn.Module):
         x_query_att=self.att(x_query)
         #--------------------
         pdb.set_trace()
+        # print("x_shot",x_shot.size(),"x_query",x_query.size(),"x_shot_att",x_shot_att.size(),"x_query_att",x_query_att.size())
         if self.method == 'cos':
             x_shot = x_shot.mean(dim=-2)
             x_shot = F.normalize(x_shot, dim=-1)

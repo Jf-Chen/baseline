@@ -10,7 +10,7 @@ model: classifier
 model_args:
     encoder: resnet12
     encoder_args: {}
-    classifier: linear-classifier 
+    classifier: avgpool-linear-classifier
     classifier_args: {n_classes: 64}
 
 batch_size: 128

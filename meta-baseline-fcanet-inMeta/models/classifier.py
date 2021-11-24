@@ -53,3 +53,19 @@ class NNClassifier(nn.Module):
     def forward(self, x):
         return utils.compute_logits(x, self.proto, self.metric, self.temp)
 
+@register('avgpool-linear-classifier')
+class LinearClassifier(nn.Module):
+
+    def __init__(self, in_dim, n_classes):
+        super().__init__()
+        self.linear = nn.Linear(in_dim, n_classes)
+
+    def forward(self, x):
+        # 因为resnet中没池化
+        x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        return self.linear(x)
+        
+        
+
+
+

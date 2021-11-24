@@ -135,7 +135,7 @@ class ResNet12_FcaNet(nn.Module):
         x = self.avgpool(x)
         x = x.reshape(x.size(0), -1)
         
-        # x=self.att(x)
+        x=self.att(x)
         
         return x
 

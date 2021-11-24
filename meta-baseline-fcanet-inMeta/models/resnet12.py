@@ -91,7 +91,7 @@ class ResNet12(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         return x
 
 
