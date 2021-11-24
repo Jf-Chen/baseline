@@ -127,20 +127,7 @@ def main(config):
     optimizer, lr_scheduler = utils.make_optimizer(
             model.parameters(),
             config['optimizer'], **config['optimizer_args'])
-    #---------------------
-    lr_config=config['optimizer_args']['lr']
-    momentum_config=config['optimizer_args']['momentum']
-    milestones_config=0.9
-    optimizer=torch.optim.SGD([
-        {"params": model.encoder.att.parameters(), "lr": 0.1*lr_config,"momentum":momentum_config},
-        {"params":model.encoder.layer1.parameters(),"lr":lr_config,"momentum":momentum_config},
-        {"params":model.encoder.layer2.parameters(),"lr":lr_config,"momentum":momentum_config},
-        {"params":model.encoder.layer3.parameters(),"lr":lr_config,"momentum":momentum_config},
-        {"params":model.encoder.layer4.parameters(),"lr":lr_config,"momentum":momentum_config},
-        ],
-        lr=0.1,momentum=0.9)
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones_config)
-    #--------------------
+
     ########
     
     max_epoch = config['max_epoch']
@@ -167,8 +154,7 @@ def main(config):
 
         # train
         model.train()
-        writer.add_scalar('lr_att', optimizer.param_groups[0]['lr'], epoch)
-        writer.add_scalar('lr_layer1', optimizer.param_groups[1]['lr'], epoch)
+        writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
 
         for data, label in tqdm(train_loader, desc='train', leave=False):
             data, label = data.cuda(), label.cuda()
