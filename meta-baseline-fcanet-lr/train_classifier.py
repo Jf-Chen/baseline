@@ -133,10 +133,10 @@ def main(config):
     milestones_config=**config['optimizer_args']['milestones']
     optimizer=torch.optim.SGD([
         {"params": model.encoder.att.parameters(), "lr": 0.1*lr_config,"momentum":momentum_config},
-        {"params":model.encoder.layer1.parameters(),"lr":lr_config,"momentum":momentum_config}
-        {"params":model.encoder.layer2.parameters(),"lr":lr_config,"momentum":momentum_config}
-        {"params":model.encoder.layer3.parameters(),"lr":lr_config,"momentum":momentum_config}
-        {"params":model.encoder.layer4.parameters(),"lr":lr_config,"momentum":momentum_config}
+        {"params":model.encoder.layer1.parameters(),"lr":lr_config,"momentum":momentum_config},
+        {"params":model.encoder.layer2.parameters(),"lr":lr_config,"momentum":momentum_config},
+        {"params":model.encoder.layer3.parameters(),"lr":lr_config,"momentum":momentum_config},
+        {"params":model.encoder.layer4.parameters(),"lr":lr_config,"momentum":momentum_config},
         ],
         lr=0.1,momentum=0.9)
     lr_scheduler = MultiStepLR(optimizer, milestones=milestones_config)
