@@ -167,7 +167,8 @@ def main(config):
 
         # train
         model.train()
-        writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
+        writer.add_scalar('lr_att', optimizer.param_groups[0]['lr'], epoch)
+        writer.add_scalar('lr_layer1', optimizer.param_groups[1]['lr'], epoch)
 
         for data, label in tqdm(train_loader, desc='train', leave=False):
             data, label = data.cuda(), label.cuda()
