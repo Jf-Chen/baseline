@@ -22,3 +22,9 @@ optimizer: sgd
 optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
 
 visualize_datasets: True
+
+
+#--------添加的-------#
+num_workers: 2
+pin_memory : false
+#---------end---------#

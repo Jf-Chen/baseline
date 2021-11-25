@@ -22,6 +22,6 @@ save_epoch: 5
 visualize_datasets: true
 
 #--------添加的-------#
-num_workers: 8
+num_workers: 2
 pin_memory : false
 #---------end---------#

@@ -31,6 +31,16 @@ def main(config):
     writer = SummaryWriter(os.path.join(save_path, 'tensorboard'))
 
     yaml.dump(config, open(os.path.join(save_path, 'config.yaml'), 'w'))
+    
+    
+    #----部分参数添加到yaml-----#
+    num_workers=8 # num_workers
+    if config.get('num_workers'):
+        num_workers = config['num_workers']
+    pin_memory = True
+    if config.get("pin_memory"):
+        pin_memory=config['pin_memory']
+    #---------end----------#
 
     #### Dataset ####
 

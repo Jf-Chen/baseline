@@ -18,7 +18,8 @@ class MetaBaseline(nn.Module):
         self.method = method
         #----------------------------------------------------------#
         
-        pdb.set_trace()
+        self.encoder_name = encoder
+        
         
         # 原本的 c2wh = dict([(64,56), (128,28), (256,14) ,(512,7)])
         # self.att = MultiSpectralAttentionLayer(plane * 4, c2wh[planes], c2wh[planes],  reduction=reduction, freq_sel_method = 'top16')
@@ -61,8 +62,9 @@ class MetaBaseline(nn.Module):
         x_query_aft = x_query_att.view(*query_shape, dimension,h ,w)
         
         # avgpool
-        x_shot_pool = x_shot_aft.view(x_shot_aft.shape[0], x_shot_aft.shape[1], -1).mean(dim=2)
-        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], -1).mean(dim=2)
+        # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
+        x_shot_pool = x_shot_aft.view(x_shot_aft.shape[0], x_shot_aft.shape[1],x_shot_aft.shape[2],x_shot_aft.shape[3], -1).mean(dim=4)
+        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], x_query_aft.shape[2],x_query_aft.shape[3],-1).mean(dim=4)
         #--------------------
         pdb.set_trace()
         # print("x_shot",x_shot.size(),"x_query",x_query.size(),"x_shot_att",x_shot_att.size(),"x_query_att",x_query_att.size())
@@ -72,6 +74,7 @@ class MetaBaseline(nn.Module):
             x_shot_F = F.normalize(x_shot_mean, dim=-1)
             x_query_F = F.normalize(x_query_pool, dim=-1)
             metric = 'dot'
+            
         elif self.method == 'sqr':
             x_shot = x_shot.mean(dim=-2)
             metric = 'sqr'
