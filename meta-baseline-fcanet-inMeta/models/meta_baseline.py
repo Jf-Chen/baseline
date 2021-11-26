@@ -64,9 +64,9 @@ class MetaBaseline(nn.Module):
         # avgpool
         # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         x_shot_pool = x_shot_aft.view(x_shot_aft.shape[0], x_shot_aft.shape[1],x_shot_aft.shape[2],x_shot_aft.shape[3], -1).mean(dim=4)
-        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], x_query_aft.shape[2],x_query_aft.shape[3],-1).mean(dim=4)
+        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], x_query_aft.shape[2],-1).mean(dim=3)
         #--------------------
-        pdb.set_trace()
+        
         # print("x_shot",x_shot.size(),"x_query",x_query.size(),"x_shot_att",x_shot_att.size(),"x_query_att",x_query_att.size())
         if self.method == 'cos':
             
