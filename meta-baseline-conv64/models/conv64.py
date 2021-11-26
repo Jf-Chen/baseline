@@ -17,7 +17,7 @@ from .models import register
 
 
 class FourLayer_64F(nn.Module):
-	def __init__(self, norm_layer=nn.BatchNorm2d):
+	def __init__(self, norm_layer=nn.BatchNorm2d,out_dim=):
 		super(FourLayer_64F, self).__init__()
 
 		if type(norm_layer) == functools.partial:
@@ -44,7 +44,7 @@ class FourLayer_64F(nn.Module):
 			norm_layer(64),
 			nn.LeakyReLU(0.2, True),                                # 64*21*21
 		)
-		
+		self.out_dim = 64
 		
 
 
@@ -53,9 +53,8 @@ class FourLayer_64F(nn.Module):
 
 		
 		y = self.features(x)
-        
-        return y
+		return y
 		
 @register('conv-64')
 def conv_64():
-    return FourLayer_64F()
+		return FourLayer_64F()

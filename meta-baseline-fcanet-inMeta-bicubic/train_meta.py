@@ -15,6 +15,7 @@ import models
 import utils
 import utils.few_shot as fs
 from datasets.samplers import CategoriesSampler
+import pdb
 
 
 def main(config):
@@ -163,6 +164,12 @@ def main(config):
             label = fs.make_nk_label(n_train_way, n_query,
                     ep_per_batch=ep_per_batch).cuda()
 
+            #------------------------------------------------------------------------------------------------------------------------------------------------
+            
+            # 看下data和label的组成
+            pdb.set_trace()
+            
+            #------------------------------------------------------------------------------------------------------------------------------------------------
             
             logits = model(x_shot, x_query).view(-1, n_train_way)
             loss = F.cross_entropy(logits, label)

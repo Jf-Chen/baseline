@@ -24,6 +24,27 @@ class Classifier(nn.Module):
         return x
 
 
+@register('multi-classifier')
+class MultiClassifier(nn.Module):
+    
+    def __init__(self, encoder, encoder_args,
+                 classifier, classifier_args, n_cls_lst):
+        super().__init__()
+        self.encoder = models.make(encoder, **encoder_args)
+        classifier_args['in_dim'] = self.encoder.out_dim
+        classifiers = []
+        for i in range(len(n_cls_lst)):
+            classifier_args['n_classes'] = n_cls_lst[i]
+            cfr = models.make(classifier, **classifier_args)
+            classifiers.append(cfr)
+        self.classifiers = nn.ModuleList(classifiers)
+
+    def forward(self, x, cfr_id):
+        x = self.encoder(x)
+        x = self.classifiers[cfr_id](x)
+        return x
+
+
 @register('linear-classifier')
 class LinearClassifier(nn.Module):
 
@@ -53,14 +74,3 @@ class NNClassifier(nn.Module):
     def forward(self, x):
         return utils.compute_logits(x, self.proto, self.metric, self.temp)
 
-@register('pool-linear-classifier')
-class LinearClassifier(nn.Module):
-
-    def __init__(self, in_dim, n_classes):
-        super().__init__()
-        self.linear = nn.Linear(in_dim, n_classes)
-
-    def forward(self, x):
-        y=x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
-        return self.linear(y)
-        
