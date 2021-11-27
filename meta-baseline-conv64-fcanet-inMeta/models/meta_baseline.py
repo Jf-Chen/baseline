@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import models
 import utils
 from .models import register
+from .layer import MultiSpectralAttentionLayer
 
 
 @register('meta-baseline')

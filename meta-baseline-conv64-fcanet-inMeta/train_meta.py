@@ -31,7 +31,16 @@ def main(config):
     writer = SummaryWriter(os.path.join(save_path, 'tensorboard'))
 
     yaml.dump(config, open(os.path.join(save_path, 'config.yaml'), 'w'))
-
+    
+    #----部分参数添加到yaml-----#
+    num_workers=8 # num_workers
+    if config.get('num_workers'):
+        num_workers = config['num_workers']
+    pin_memory = True
+    if config.get("pin_memory"):
+        pin_memory=config['pin_memory']
+    #---------end----------#
+    
     #### Dataset ####
 
     n_way, n_shot = config['n_way'], config['n_shot']
@@ -63,7 +72,7 @@ def main(config):
             n_train_way, n_train_shot + n_query,
             ep_per_batch=ep_per_batch)
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler,
-                              num_workers=8, pin_memory=True)
+                              num_workers=num_workers, pin_memory=pin_memory)
 
     # tval
     if config.get('tval_dataset'):
@@ -79,7 +88,7 @@ def main(config):
                 n_way, n_shot + n_query,
                 ep_per_batch=4)
         tval_loader = DataLoader(tval_dataset, batch_sampler=tval_sampler,
-                                 num_workers=8, pin_memory=True)
+                                 num_workers=num_workers, pin_memory=pin_memory)
     else:
         tval_loader = None
 
@@ -96,7 +105,7 @@ def main(config):
             n_way, n_shot + n_query,
             ep_per_batch=4)
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler,
-                            num_workers=8, pin_memory=True)
+                            num_workers=num_workers, pin_memory=pin_memory)
 
     ########
 
