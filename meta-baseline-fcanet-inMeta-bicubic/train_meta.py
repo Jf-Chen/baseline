@@ -165,7 +165,22 @@ def main(config):
                     ep_per_batch=ep_per_batch).cuda()
 
             #------------------------------------------------------------------------------------------------------------------------------------------------
+            data_bicubic=torch.nn.functional.interpolate(input=x_shot,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+            data_1=data_bicubic[:,:,0::2,0::2]
+            data_2=data_bicubic[:,:,0::2,1::2]
+            data_3=data_bicubic[:,:,1::2,0::2]
+            data_4=data_bicubic[:,:,1::2,1::2]
+            x_shot=torch.cat((data_1,data_2,data_3,data_4),0)
             
+            data_bicubic=torch.nn.functional.interpolate(input=x_query,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+            data_1=data_bicubic[:,:,0::2,0::2]
+            data_2=data_bicubic[:,:,0::2,1::2]
+            data_3=data_bicubic[:,:,1::2,0::2]
+            data_4=data_bicubic[:,:,1::2,1::2]
+            x_query=torch.cat((data_1,data_2,data_3,data_4),0)
+            
+            
+            label=torch.cat((label,label,label,label),0)
             # 看下data和label的组成
             pdb.set_trace()
             
@@ -201,7 +216,30 @@ def main(config):
                         ep_per_batch=4)
                 label = fs.make_nk_label(n_way, n_query,
                         ep_per_batch=4).cuda()
-
+                
+                #------------------------------------------------------------------------------------------------------------------------------------------------
+                data_bicubic=torch.nn.functional.interpolate(input=x_shot,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+                data_1=data_bicubic[:,:,0::2,0::2]
+                data_2=data_bicubic[:,:,0::2,1::2]
+                data_3=data_bicubic[:,:,1::2,0::2]
+                data_4=data_bicubic[:,:,1::2,1::2]
+                x_shot=torch.cat((data_1,data_2,data_3,data_4),0)
+                
+                data_bicubic=torch.nn.functional.interpolate(input=x_query,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+                data_1=data_bicubic[:,:,0::2,0::2]
+                data_2=data_bicubic[:,:,0::2,1::2]
+                data_3=data_bicubic[:,:,1::2,0::2]
+                data_4=data_bicubic[:,:,1::2,1::2]
+                x_query=torch.cat((data_1,data_2,data_3,data_4),0)
+                
+                
+                label=torch.cat((label,label,label,label),0)
+                # 看下data和label的组成
+                
+                
+                #------------------------------------------------------------------------------------------------------------------------------------------------
+            
+                
                 with torch.no_grad():
                     logits = model(x_shot, x_query).view(-1, n_way)
                     loss = F.cross_entropy(logits, label)

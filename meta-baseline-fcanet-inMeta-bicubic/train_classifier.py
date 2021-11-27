@@ -158,11 +158,21 @@ def main(config):
         writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
 
         for data, label in tqdm(train_loader, desc='train', leave=False):
-            data, label = data.cuda(), label.cuda()
+            data, label = data.cuda(), label.cuda() 
             #------------------------------------------------------------------------------------------------------------------------------------------------
+            # data [128, 3, 80, 80]
+            # label [128]
+            
+            data_bicubic=torch.nn.functional.interpolate(input=data,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+            data_1=data_bicubic[:,:,0::2,0::2]
+            data_2=data_bicubic[:,:,0::2,1::2]
+            data_3=data_bicubic[:,:,1::2,0::2]
+            data_4=data_bicubic[:,:,1::2,1::2]
+            data=torch.cat((data_1,data_2,data_3,data_4),0)
+            label=torch.cat((label,label,label,label),0)
             
             # 看下data和label的组成
-            pdb.set_trace()
+            # pdb.set_trace()
             
             #------------------------------------------------------------------------------------------------------------------------------------------------
             logits = model(data)
@@ -201,6 +211,25 @@ def main(config):
                             data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
                     label = fs.make_nk_label(
                             n_way, n_query, ep_per_batch=4).cuda()
+                    
+                    #------------------------------------------------------------------------------------------------------------------------------------------------
+                    # data 
+                    # label 
+                    
+                    data_bicubic=torch.nn.functional.interpolate(input=data,scale_factor =2,mode='bicubic').clamp(min=0, max=255)
+                    data_1=data_bicubic[:,:,0::2,0::2]
+                    data_2=data_bicubic[:,:,0::2,1::2]
+                    data_3=data_bicubic[:,:,1::2,0::2]
+                    data_4=data_bicubic[:,:,1::2,1::2]
+                    data=torch.cat((data_1,data_2,data_3,data_4),0)
+                    label=torch.cat((label,label,label,label),0)
+                    
+                    # 看下data和label的组成
+                    # pdb.set_trace()
+                    
+                    #------------------------------------------------------------------------------------------------------------------------------------------------
+                    
+                    
                     with torch.no_grad():
                         logits = fs_model(x_shot, x_query).view(-1, n_way)
                         acc = utils.compute_acc(logits, label)
