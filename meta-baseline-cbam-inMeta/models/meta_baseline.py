@@ -7,7 +7,6 @@ import utils
 from .models import register
 from .layer import MultiSpectralAttentionLayer
 import pdb
-from .dn4_sim import ImgtoClass_Metric
 
 @register('meta-baseline')
 class MetaBaseline(nn.Module):
@@ -83,13 +82,6 @@ class MetaBaseline(nn.Module):
             # 采样BSNet度量，不过还没写
             x_shot = x_shot.mean(dim=-2)
             metric = 'sqr'
-        elif self.method='dn4':
-            x_shot_mean = x_shot_pool.mean(dim=-2)
-            x_shot_F = F.normalize(x_shot_mean, dim=-1)
-            x_query_F = F.normalize(x_query_pool, dim=-1)
-            metric = 'dot'
-            self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)
-            x = self.imgtoclass(x_query_F, x_shot_F) # get Batch*num_classes
 
         logits = utils.compute_logits(
                 x_query_F, x_shot_F, metric=metric, temp=self.temp)

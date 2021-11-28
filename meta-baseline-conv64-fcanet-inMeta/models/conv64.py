@@ -17,7 +17,7 @@ from .models import register
 
 
 class FourLayer_64F(nn.Module):
-    def __init__(self, norm_layer=nn.BatchNorm2d,out_dim=):
+    def __init__(self, norm_layer=nn.BatchNorm2d):
         super(FourLayer_64F, self).__init__()
 
         if type(norm_layer) == functools.partial:
