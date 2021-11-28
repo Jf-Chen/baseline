@@ -9,6 +9,7 @@ model: meta-baseline
 model_args: 
     encoder: resnet12-wide
     encoder_args: {}
+    method: mix-cos
 # load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
 load_encoder: ./save/classifier_mini-imagenet_resnet12-wide-avgpool-linear-classifier/epoch-last.pth
 

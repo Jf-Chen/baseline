@@ -20,15 +20,9 @@ class MetaBaseline(nn.Module):
         
         self.encoder_name = encoder
         
-        
-        # 原本的 c2wh = dict([(64,56), (128,28), (256,14) ,(512,7)])
-        # self.att = MultiSpectralAttentionLayer(plane * 4, c2wh[planes], c2wh[planes],  reduction=reduction, freq_sel_method = 'top16')
-        reduction = 16
-        freq_sel_method = 'top16'
-        c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
-        planes=640 # 插在哪一层后面就是多少维
-        
-        self.att = MultiSpectralAttentionLayer(channel = planes, dct_h=c2wh[planes], dct_w=c2wh[planes],  reduction=reduction, freq_sel_method = freq_sel_method)
+        self.out_dim=640
+        self.ca1 = ChannelAttention(640)
+        self.sa1 = SpatialAttention()
         # att期望的输入是 n,c,h,w 也就是同一个类别
         #--------------------------end-----------------------------#
 

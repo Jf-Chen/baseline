@@ -19,21 +19,31 @@ class ImgtoClass_Metric(nn.Module):
     def cal_cosinesimilarity(self, input1, input2):
         B, C, h, w = input1.size()
         Similarity_list = []
+        
+        B_s,C_s,h_s,w_s=input2.size()
+        S = []
+		for i in range(len(input2)):
+			support_set_sam = self.features(input2[i])# b,c,h,w
+			B, C, h, w = support_set_sam.size()
+			support_set_sam = support_set_sam.permute(1, 0, 2, 3)# c,b,h,w
+			support_set_sam = support_set_sam.contiguous().view(C, -1)
+			S.append(support_set_sam) # c,hw*b
+        input2=S
 
         for i in range(B):
-            query_sam = input1[i]
-            query_sam = query_sam.view(C, -1)
-            query_sam = torch.transpose(query_sam, 0, 1)
-            query_sam_norm = torch.norm(query_sam, 2, 1, True)   
-            query_sam = query_sam/query_sam_norm
+            query_sam = input1[i] # C, h, w 
+            query_sam = query_sam.view(C, -1) # C, hw 
+            query_sam = torch.transpose(query_sam, 0, 1) # hw,c
+            query_sam_norm = torch.norm(query_sam, 2, 1, True) # hw,c
+            query_sam = query_sam/query_sam_norm # hw,c
 
             if torch.cuda.is_available():
                 inner_sim = torch.zeros(1, len(input2)).cuda()
 
             for j in range(len(input2)):
-                support_set_sam = input2[j]
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                support_set_sam = support_set_sam/support_set_sam_norm
+                support_set_sam = input2[j] # C,h,w
+                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True) # 1, h,w
+                support_set_sam = support_set_sam/support_set_sam_norm # C,h,w
 
                 # cosine similarity between a query sample and a support category
                 innerproduct_matrix = query_sam@support_set_sam

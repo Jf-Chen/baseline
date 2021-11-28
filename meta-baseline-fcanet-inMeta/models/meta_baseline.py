@@ -83,7 +83,7 @@ class MetaBaseline(nn.Module):
             # 采样BSNet度量，不过还没写
             x_shot = x_shot.mean(dim=-2)
             metric = 'sqr'
-        elif self.method='dn4':
+        elif self.method == 'dn4':
             x_shot_mean = x_shot_pool.mean(dim=-2)
             x_shot_F = F.normalize(x_shot_mean, dim=-1)
             x_query_F = F.normalize(x_query_pool, dim=-1)
