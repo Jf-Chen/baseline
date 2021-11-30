@@ -7,7 +7,7 @@ import utils
 from .models import register
 from .layer import MultiSpectralAttentionLayer
 import pdb
-from .dn4_sim import ImgtoClass_Metric
+
 
 @register('meta-baseline')
 class MetaBaseline(nn.Module):

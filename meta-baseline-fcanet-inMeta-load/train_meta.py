@@ -17,6 +17,23 @@ import utils.few_shot as fs
 from datasets.samplers import CategoriesSampler
 
 
+def load_model(model,dir):
+    model_dict = model.state_dict()
+    print('loading model from :', dir)
+    pretrained_dict = torch.load(dir)['params']
+    if 'encoder' in list(pretrained_dict.keys())[0]:  # load from a parallel meta-trained model
+        if 'module' in list(pretrained_dict.keys())[0]:
+            pretrained_dict = {k[7:]: v for k, v in pretrained_dict.items()}
+        else:
+            pretrained_dict = {k: v for k, v in pretrained_dict.items()}
+    else:
+        pretrained_dict = {'encoder.' + k: v for k, v in pretrained_dict.items()}  # load from a pretrained model
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+    model_dict.update(pretrained_dict)  # update the param in encoder, remain others still
+    model.load_state_dict(model_dict)
+
+    return model
+
 def main(config):
     svname = args.name
     if svname is None:
@@ -115,12 +132,16 @@ def main(config):
     if config.get('load'):
         model_sv = torch.load(config['load'])
         model = models.load(model_sv)
+
     else:
         model = models.make(config['model'], **config['model_args'])
 
         if config.get('load_encoder'):
-            encoder = models.load(torch.load(config['load_encoder'])).encoder
-            model.encoder.load_state_dict(encoder.state_dict())
+            if (config['model_args']["encoder"] == "resnet12-deepemd"):
+                model.encoder=load_model(model.encoder,config['load_encoder'])
+            else: 
+                encoder = models.load(torch.load(config['load_encoder'])).encoder
+                model.encoder.load_state_dict(encoder.state_dict())
 
     if config.get('_parallel'):
         model = nn.DataParallel(model)
@@ -282,4 +303,5 @@ if __name__ == '__main__':
 
     utils.set_gpu(args.gpu)
     main(config)
+
 

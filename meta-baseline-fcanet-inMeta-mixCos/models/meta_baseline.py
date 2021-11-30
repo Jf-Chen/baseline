@@ -12,7 +12,7 @@ import pdb
 @register('meta-baseline')
 class MetaBaseline(nn.Module):
 
-    def __init__(self, encoder, encoder_args={}, method='cos',
+    def __init__(self, encoder, encoder_args={}, method='cos',neighbor_k=5,
                  temp=10., temp_learnable=True):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
@@ -34,6 +34,11 @@ class MetaBaseline(nn.Module):
         
         # 温度参数
         self.temperature = 1
+        self.neighbor_k=neighbor_k
+        
+        # correpond to [alpha, beta] in the paper
+        # if is during pre-training, we fix them to 0
+        self.r = nn.Parameter(torch.zeros(2),requires_grad=not is_pretraining)
         #--------------------------end-----------------------------#
 
         if temp_learnable:
@@ -88,7 +93,7 @@ class MetaBaseline(nn.Module):
             metric = 'sqr'
         elif self.method == 'mix-cos':
             neighbor_k=5
-            logits=compute_cos_mix(x_shot_aft,x_query_aft,neighbor_k)
+            logits=compute_cos_mix(x_shot_aft,x_query_aft,neighbor_k,self.r)
             return logits
             
 
@@ -100,7 +105,7 @@ class MetaBaseline(nn.Module):
 #========================== mix cos ==========================#
 # 
 # 混合proto和dn4
-def compute_cos_mix(base,query,neighbor_k):
+def compute_cos_mix(base,query,neighbor_k,r):
     # base [b,way,shot,c,h,w]
     # query [b,q_num,c,h,w]
     
@@ -154,7 +159,7 @@ def compute_cos_mix(base,query,neighbor_k):
     
     logits_dn4 = torch.cat(logits_dn4,0)
     ## logits 是 [4,75,5], 这个最后也要返回[4,75,5]
-    result=logits+logits_dn4 # 但是二者的数值差距过大
+    result=r[0]*logits+r[1]*logits_dn4 # 但是二者的数值差距过大,详见debug
     
     
     return result
