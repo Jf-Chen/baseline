@@ -1,0 +1,10 @@
+
+dn4中的特征是21x21还是1x64?
+按照query_sam = query_sam.view(C, -1)，是1x64
+
+一个query[441,64]和每个类最相似的特征[way,64,441*shot]，计算cos，取top1，得到[5,441,1]
+innerproduct_matrix = query_sam@support_set_sam
+
+每个特征指示的分类信息[441,5]
+按5个中最大的，进行排序，？还是按照区分度最大的，进行排序？
+得到[441,5],每个query image得到5条分类曲线
