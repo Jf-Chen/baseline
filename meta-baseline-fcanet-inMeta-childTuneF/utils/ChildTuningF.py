@@ -1,7 +1,7 @@
 
 from transformers import Trainer
 from transformers.optimization import get_scheduler
-from ChildTuningOptimizer import ChildTuningAdamW
+from .ChildTuningOptimizer import ChildTuningAdamW
 
 class ChildTuningFtrainer():
     def __init__(self, **kwargs,model):
