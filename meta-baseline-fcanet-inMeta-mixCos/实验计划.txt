@@ -1,0 +1,7 @@
+实验一：
+1. 用linear训练classifier
+2. 用mix-cos训练meta
+
+实验二：
+1. 用mix-cos训练classifier
+2  用mix-cos训练classifier

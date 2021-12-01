@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import MultiStepLR
-from .ChildTuningF import ChildTuningFtrainer
 
 from . import few_shot
 
@@ -137,38 +136,7 @@ def make_optimizer(params, name, lr, weight_decay=None, milestones=None):
         lr_scheduler = MultiStepLR(optimizer, milestones)
     else:
         lr_scheduler = None
-        
-    
     return optimizer, lr_scheduler
-    
-    
-##+================ 我写的 ===========#
-## 需要返回一个optimizer 和 lr_scheduler 
-def make_ctd(model, lr,epoch):
-    
-    kwargs={
-        'weight_decay':0.0,
-        'adam_beta1':0.9,
-        'adam_beta2':0.999,
-        'adam_epsilon': 1e-6,
-        'learning_rate': lr,
-        'reserve_p':1.0,
-        'mode':'ChildTuning-F',
-        'lr_scheduler_type': 'linear',
-        'warmup_steps': 10,
-        'num_training_steps':20,
-    }
-    
-    
-    trainer_cls = ChildTuningFtrainer(model,**kwargs)
-    trainer_cls.create_optimizer_and_scheduler()
-    optimizer = trainer_cls.optimizer
-    lr_scheduler = trainer_cls.lr_scheduler
-
-    return optimizer, lr_scheduler
-
-#======================================#
-
 
 
 def visualize_dataset(dataset, name, writer, n_samples=16):

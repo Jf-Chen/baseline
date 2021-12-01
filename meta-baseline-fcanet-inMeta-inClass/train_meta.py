@@ -127,14 +127,9 @@ def main(config):
 
     utils.log('num params: {}'.format(utils.compute_n_params(model)))
 
-    
-    
-    # optimizer, lr_scheduler = utils.make_optimizer(model.parameters(),config['optimizer'], **config['optimizer_args'])
-    
-    # 专门给childtune写一个把
-    max_epoch = config['max_epoch']
-    lr_ctd=1e-3
-    optimizer, lr_scheduler = utils.make_ctd(model, lr_ctd,max_epoch)
+    optimizer, lr_scheduler = utils.make_optimizer(
+            model.parameters(),
+            config['optimizer'], **config['optimizer_args'])
 
     ########
     
