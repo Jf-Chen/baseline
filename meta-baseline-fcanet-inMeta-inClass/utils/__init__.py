@@ -131,7 +131,9 @@ def make_optimizer(params, name, lr, weight_decay=None, milestones=None):
     if name == 'sgd':
         optimizer = SGD(params, lr, momentum=0.9, weight_decay=weight_decay)
     elif name == 'adam':
-        optimizer = Adam(params, lr, weight_decay=weight_decay)
+         optimizer = Adam(params, lr, weight_decay=weight_decay)
+    elif name == 'adam-stand':
+        optimizer = Adam(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
     if milestones:
         lr_scheduler = MultiStepLR(optimizer, milestones)
     else:
