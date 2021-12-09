@@ -108,6 +108,11 @@ def compute_acc(logits, label, reduction='mean'):
     elif reduction == 'mean':
         return ret.mean().item()
 
+# 我写的，用loss计算acc
+def compute_acc_loss(loss,label):
+    ret = (torch.argmax(logits, dim=1) == label).float()
+    return ret.mean().item()
+
 
 def compute_n_params(model, return_str=True):
     tot = 0

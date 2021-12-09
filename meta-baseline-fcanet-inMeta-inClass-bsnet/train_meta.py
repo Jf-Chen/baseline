@@ -164,9 +164,13 @@ def main(config):
                     ep_per_batch=ep_per_batch).cuda()
 
             
-            logits = model(x_shot, x_query).view(-1, n_train_way)
-            loss = F.cross_entropy(logits, label)
-            acc = utils.compute_acc(logits, label)
+            logits_dn4,logits_cos = model(x_shot, x_query).view(-1, n_train_way)
+            loss_dn4 = F.cross_entropy(logits_dn4, label)
+            loss_cos = F.cross_entropy(logits_cos, label)
+            loss = logits_dn4 + logits_cos
+            
+            # acc = utils.compute_acc(logits, label)
+            acc = utils.compute_acc_loss(loss, label)
 
             optimizer.zero_grad()
             loss.backward()
@@ -175,7 +179,7 @@ def main(config):
             aves['tl'].add(loss.item())
             aves['ta'].add(acc)
 
-            logits = None; loss = None 
+            logits_dn4 = None; logits_cos = None; loss = None 
 
         # eval
         model.eval()

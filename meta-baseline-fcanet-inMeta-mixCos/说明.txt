@@ -1,0 +1,2 @@
+meta-baseline.py下有def compute_cos_mix(base,query,neighbor_k,r):
+用来包含了dn4的相似度
