@@ -72,6 +72,8 @@ class MetaBaseline(nn.Module):
         #==================================================================#
         elif self.method == 'dn4cos':
             # 采样欧式+cos度量，需要输出[logits_dn4,logits_cos]
+            # x_shot_aft [4, 5, 5, 640, 5, 5] 
+            # x_query_aft [4, 75, 640, 5, 5]
             logits_dn4,logits = compute_dn4_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
             logits = [logits_dn4,logits]
         #==================================================================#
@@ -92,11 +94,16 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     base_mean=base.contiguous().view(base.shape[0], base.shape[1]*base.shape[2],base.shape[3], -1).mean(dim=3)# [b,way,shot,c]
     query_mean=query.contiguous().view(query.shape[0], query.shape[1], query.shape[2],-1).mean(dim=3)
     logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean, dim=-1).permute(0, 2, 1))
+    # query_mean [4, 75, 640] base_mean [4, 25, 640]  
+    # logits_cos [4, 75, 25]
 
     ## DN4相似度
-    base_temp_1=base.view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1)# [ep,way*shot,dim,h*w]
-    base_temp_2=base_temp_1 # [ep,way,shot,dim,h*w]
-    base_mix = base_temp_2.contiguous().view(base_temp_2.shape[0],base_temp_2.shape[1],base_temp_2.shape[2]*base_temp_2.shape[3],base_temp_2.shape[4])# [ep,way,shot*h*w,dim] [4,5,1*25,640]
+    base_temp_1=base.view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1)# [ep,way,shot,dim,h*w] [4, 5, 5, 640, 25]
+    base_temp_2=base_temp_1.permute(0,1,2,4,3) # [ep,way,shot,h*w,dim]
+    base_mix = base_temp_2.contiguous().view(base_temp_2.shape[0],base_temp_2.shape[1],base_temp_2.shape[2]*base_temp_2.shape[3],base_temp_2.shape[4])# [ep,way,shot*h*w,dim] [4,5,5*25,640]
+    #  base_mix torch.Size 
+    # 问题在这里,mix的过程错了，应当是[4,5,5*25,640]
+    
     
     query_temp = query.view(query.shape[0], query.shape[1], query.shape[2],-1) # [4,75,5*5,640,] # [ep,q,h*w,dim]
     query_mix = query_temp.permute(0,1,3,2)
@@ -122,10 +129,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
                 inner_sim = torch.zeros(1, base_mix.shape[1]).cuda()
             
             for k in range(base_mix.shape[1]):
+                # 需要转置，但也许要在正则化前/后
                 support_set_sam = base_mix[i,k,:,:]
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
                 support_set_sam = support_set_sam/support_set_sam_norm
-                innerproduct_matrix = query_sam@support_set_sam
+                support_set_sam_t = torch.transpose(support_set_sam,0,1)
+                innerproduct_matrix = query_sam@support_set_sam_t
                 
                 topk_value, topk_index = torch.topk(innerproduct_matrix, neighbor_k, 1)
                 inner_sim[0, k] = torch.sum(topk_value)/neighbor_k # 除以5试试

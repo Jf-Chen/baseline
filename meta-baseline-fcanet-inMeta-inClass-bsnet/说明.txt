@@ -1,6 +1,7 @@
 1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
 2. meta-baseline中不加入att，直接使用带att的encoder
 3. classifier和meta-baseline都使用bsnet+dn4的度量方式，其中bsnet选择欧式+cos作为度量
+4.经过考虑，不使用bsnet+dn4，而是dn4+cos的度量方式（偏向MML）
 
 
 一个问题是classifier阶段要不要用复杂的度量方式，直接使用linear相当于只用了bsnet的欧式距离
