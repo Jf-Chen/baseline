@@ -15,7 +15,7 @@ import models
 import utils
 import utils.few_shot as fs
 from datasets.samplers import CategoriesSampler
-import pdb
+
 
 def main(config):
     svname = args.name
@@ -139,7 +139,8 @@ def main(config):
     timer_used = utils.Timer()
     timer_epoch = utils.Timer()
 
-    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va']
+    # aves_keys = ['tl', 'ta', 'tvl', 'tva_dn4','tva_cos', 'vl', 'va_dn4','va_cos']
+    aves_keys = ['tl', 'ta_dn4','ta_cos', 'tvl', 'tva_dn4','tva_cos', 'vl', 'va_dn4','va_cos']
     trlog = dict()
     for k in aves_keys:
         trlog[k] = []
@@ -163,49 +164,39 @@ def main(config):
             label = fs.make_nk_label(n_train_way, n_query,
                     ep_per_batch=ep_per_batch).cuda()
 
-            
-            #==========================================================================#
-            logits =  model(x_shot, x_query).view(-1, n_train_way)
-            loss = F.cross_entropy(logits, label)
-            acc = utils.compute_acc(logits, label)
-            
-            """
+            #=========================================================================================#
             logits_dn4,logits_cos = model(x_shot, x_query)# .view(-1, n_train_way)
             # F.cross_entropy(A, label),A应当是[300,5],;label应当是[300]
             
-            logits_dn4_view=logits_dn4.view(-1, n_train_way)
-            logits_cos_view=logits_cos.view(-1, n_train_way)
-            
-            # 理所当然地，二者的logits差距很大，但不影响loss的计算
-            # 问题是如何计算acc
-            # 应该保持train_meta不变，保持model的输出；先不这样做
-            
+            logits_dn4_view = logits_dn4.view(-1, n_train_way)
+            logits_cos_view = logits_cos.view(-1, n_train_way)
             loss_dn4 = F.cross_entropy(logits_dn4_view, label)
             loss_cos = F.cross_entropy(logits_cos_view, label)
-            loss = logits_dn4 + logits_cos
+            
+            loss = loss_dn4 + loss_cos
+            
             # acc = utils.compute_acc(logits, label)
-            acc = utils.compute_acc_loss(loss, label)
-            """
-            #=============================================================================#
-
+            # 要如何统计acc?
+            acc_dn4 = utils.compute_acc_loss(logits_dn4_view, label)
+            acc_cos = utils.compute_acc_loss(logits_cos_view, label)
+            #========================================================================================#
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
             aves['tl'].add(loss.item())
-            aves['ta'].add(acc)
+            aves['ta_dn4'].add(acc_dn4)
+            aves['ta_cos'].add(acc_cos)
 
-
-            logits = None; loss = None 
-            # logits_dn4 = None; logits_cos = None; loss = None 
+            logits_dn4 = None; logits_cos = None; loss = None 
 
         # eval
         model.eval()
 
-        for name, loader, name_l, name_a in [
-                ('tval', tval_loader, 'tvl', 'tva'),
-                ('val', val_loader, 'vl', 'va')]:
+        for name, loader, name_l, name_a_dn4,name_a_cos in [
+                ('tval', tval_loader, 'tvl', 'tva_dn4','tva_cos'),
+                ('val', val_loader, 'vl', 'va_dn4','va_cos')]:
 
             if (config.get('tval_dataset') is None) and name == 'tval':
                 continue
@@ -219,12 +210,28 @@ def main(config):
                         ep_per_batch=4).cuda()
 
                 with torch.no_grad():
-                    logits = model(x_shot, x_query).view(-1, n_way)
+                    # logits = model(x_shot, x_query).view(-1, n_way)
+                    #=================================================================================#
+                    logits_dn4,logits_cos = model(x_shot, x_query)# .view(-1, n_train_way)
+                    # F.cross_entropy(A, label),A应当是[300,5],;label应当是[300]
+                    
+                    logits_dn4_view = logits_dn4.view(-1, n_way)
+                    logits_cos_view = logits_cos.view(-1, n_way)
+                    loss_dn4 = F.cross_entropy(logits_dn4_view, label)
+                    loss_cos = F.cross_entropy(logits_cos_view, label)
+                    loss = loss_dn4 + loss_cos
+                    acc_dn4 = utils.compute_acc_loss(logits_dn4_view, label)
+                    acc_cos = utils.compute_acc_loss(logits_cos_view, label)
+                    #================================================================================#
+
+                    
+                    
                     loss = F.cross_entropy(logits, label)
                     acc = utils.compute_acc(logits, label)
                 
                 aves[name_l].add(loss.item())
-                aves[name_a].add(acc)
+                aves[name_a_dn4].add(acc)
+                aves[name_a_cos].add(acc)
 
         _sig = int(_[-1])
 

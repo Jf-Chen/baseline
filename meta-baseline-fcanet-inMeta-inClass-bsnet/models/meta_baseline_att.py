@@ -94,11 +94,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     base_mean=base.contiguous().view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1).mean(dim=4)# [b,way,shot,c]
     base_mean_proto=base_mean.mean(dim=2) # [b,way,c]
     query_mean=query.contiguous().view(query.shape[0], query.shape[1], query.shape[2],-1).mean(dim=3)
-    logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean_proto, dim=-1).permute(0, 2, 1))
-    # 这里base_mean错了，应该是[4,5,640]
     
-    # query_mean [4, 75, 640] base_mean [4, 25, 640]  
-    # logits_cos [4, 75, 25]
+    # 加入正则化
+    logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean_proto, dim=-1).permute(0, 2, 1))
+    
+    # query_mean [4, 75, 640] base_mean [4, 5, 640]  
+    # logits_cos [4, 75, 5]
 
     ## DN4相似度
     base_temp_1=base.view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1)# [ep,way,shot,dim,h*w] [4, 5, 5, 640, 25]
@@ -152,8 +153,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     ## logits 是 [4,75,5], 这个最后也要返回[4,75,5]
 
     
+    # 只输出一个logits
+    logits_dn4_norm = torch.nn.functional.normalize(logits_dn4,p=2,dim=-1)
+    logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
+    logits = logits_dn4_norm + logits_cos_norm
     
-    return logits_dn4,logits_cos
+    return logits
 
 
 
