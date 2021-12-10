@@ -166,12 +166,11 @@ def main(config):
             
             logits_dn4,logits_cos = model(x_shot, x_query)# .view(-1, n_train_way)
             # F.cross_entropy(A, label),A应当是[300,5],;label应当是[300]
-            logits_dn4_mean=logits_dn4.view(-1, n_train_way)
-            logits_cos_mean=logits_cos.view(-1, n_train_way)
-            logits_dn4_view=logits_dn4_mean.view(-1, n_train_way)
-            logits_cos_view=logits_cos_mean.view(-1, n_train_way)
-            loss_dn4 = F.cross_entropy(logits_dn4_mean, label)
-            loss_cos = F.cross_entropy(logits_cos_mean, label)
+            
+            logits_dn4_view=logits_dn4.view(-1, n_train_way)
+            logits_cos_view=logits_cos.view(-1, n_train_way)
+            loss_dn4 = F.cross_entropy(logits_dn4_view, label)
+            loss_cos = F.cross_entropy(logits_cos_view, label)
             
             loss = logits_dn4 + logits_cos
             
