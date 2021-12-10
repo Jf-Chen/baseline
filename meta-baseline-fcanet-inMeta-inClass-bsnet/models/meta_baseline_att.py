@@ -91,9 +91,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     # query [b,q_num,c,h,w]
     
     ## 余弦相似度(好像和proto一样)
-    base_mean=base.contiguous().view(base.shape[0], base.shape[1]*base.shape[2],base.shape[3], -1).mean(dim=3)# [b,way,shot,c]
+    base_mean=base.contiguous().view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1).mean(dim=4)# [b,way,shot,c]
+    base_mean_proto=base_mean.mean(dim=2) # [b,way,c]
     query_mean=query.contiguous().view(query.shape[0], query.shape[1], query.shape[2],-1).mean(dim=3)
-    logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean, dim=-1).permute(0, 2, 1))
+    logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean_proto, dim=-1).permute(0, 2, 1))
+    # 这里base_mean错了，应该是[4,5,640]
+    
     # query_mean [4, 75, 640] base_mean [4, 25, 640]  
     # logits_cos [4, 75, 25]
 
