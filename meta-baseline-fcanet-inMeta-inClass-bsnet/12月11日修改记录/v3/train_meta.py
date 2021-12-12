@@ -73,7 +73,7 @@ def main(config):
             n_train_way, n_train_shot + n_query,
             ep_per_batch=ep_per_batch)
     train_loader = DataLoader(train_dataset, batch_sampler=train_sampler,
-                              num_workers=num_workers, pin_memory= pin_memory)
+                              num_workers=num_workers, pin_memory=pin_memory)
 
     # tval
     if config.get('tval_dataset'):
@@ -89,7 +89,7 @@ def main(config):
                 n_way, n_shot + n_query,
                 ep_per_batch=4)
         tval_loader = DataLoader(tval_dataset, batch_sampler=tval_sampler,
-                                 num_workers=num_workers, pin_memory= pin_memory)
+                                 num_workers=num_workers, pin_memory=pin_memory)
     else:
         tval_loader = None
 
@@ -106,7 +106,7 @@ def main(config):
             n_way, n_shot + n_query,
             ep_per_batch=4)
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler,
-                            num_workers=num_workers, pin_memory= pin_memory)
+                            num_workers=num_workers, pin_memory=pin_memory)
 
     ########
 

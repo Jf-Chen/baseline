@@ -19,6 +19,9 @@ class MetaBaseline(nn.Module):
         #----------------------------------------------------------#
         self.neighbor_k = neighbor_k
         self.encoder_name = encoder
+        # 初始化为0和1
+        self.r_dn4 = nn.Parameter(torch.zeros(1),requires_grad=True)
+        self.r_cos = nn.Parameter(torch.ones(1),requires_grad=True)
         #--------------------------end-----------------------------#
 
         if temp_learnable:
@@ -74,8 +77,8 @@ class MetaBaseline(nn.Module):
             # 采样欧式+cos度量，需要输出[logits_dn4,logits_cos]
             # x_shot_aft [4, 5, 5, 640, 5, 5] 
             # x_query_aft [4, 75, 640, 5, 5]
-            logits = compute_dn4_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
-            # logits = [logits_dn4,logits]
+            logits_cos , logits_dn4 = compute_dn4_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
+            logits = self.r_cos * logits_cos + self.r_dn4 * logits_dn4 
         #==================================================================#
         elif self.method == 'dn4':
             logits_dn4,logits = compute_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
@@ -154,11 +157,11 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
 
     
     # 只输出一个logits
-    logits_dn4_norm = torch.nn.functional.normalize(logits_dn4,p=2,dim=-1)
-    logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
-    logits = logits_dn4_norm + logits_cos_norm
+    #logits_dn4_norm = torch.nn.functional.normalize(logits_dn4,p=2,dim=-1)
+    #logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
+    #logits = logits_dn4_norm + logits_cos_norm
     
-    return logits
+    return logits_cos , logits_dn4
 
 
 
