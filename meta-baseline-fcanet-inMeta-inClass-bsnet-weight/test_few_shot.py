@@ -74,7 +74,8 @@ def main(config):
 
             with torch.no_grad():
                 if not args.sauc:
-                    logits = model(x_shot, x_query).view(-1, n_way)
+                    logits_unview,r_dn4,r_cos =  model(x_shot, x_query)
+                    logits = logits_unview.view(-1, n_way)
                     label = fs.make_nk_label(n_way, n_query,
                             ep_per_batch=ep_per_batch).cuda()
                     loss = F.cross_entropy(logits, label)
