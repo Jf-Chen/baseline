@@ -132,8 +132,9 @@ def main(config):
             config['optimizer'], **config['optimizer_args'])
 
     ########
-    r_cos = nn.Parameter(torch.ones(1),requires_grad=True)
-    r_dn4 = nn.Parameter(torch.ones(1),requires_grad=True)
+    device = torch.device('cuda:0') 
+    r_cos = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
+    r_dn4 = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
     
     max_epoch = config['max_epoch']
     save_epoch = config.get('save_epoch')
