@@ -83,8 +83,12 @@ def main(config):
 
             with torch.no_grad():
                 if not args.sauc:
-                    logits_unview,r_dn4,r_cos =  model(x_shot, x_query)
-                    logits = logits_unview.view(-1, n_way)
+                    #==========================================================================#
+                    logits_cos_unview,logits_dn4_unview =  model(x_shot, x_query)
+                    logits_cos = logits_cos_unview.view(-1, n_way)
+                    logits_dn4 = logits_dn4_unview.view(-1, n_way)
+                    logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
+
                     label = fs.make_nk_label(n_way, n_query,
                             ep_per_batch=ep_per_batch).cuda()
                     loss = F.cross_entropy(logits, label)
