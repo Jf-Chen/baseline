@@ -1,0 +1,18 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. classifier和meta-baseline都使用bsnet+dn4的度量方式，其中bsnet选择欧式+cos作为度量
+4.经过考虑，不使用bsnet+dn4，而是dn4+cos的度量方式（偏向MML）
+5. 修改了loss和logits，loss采用加权求和的方式，而logits=logits_dn4*logits_cos，作为分类的概率
+6. 当然，loss可以进一步进行修改
+
+
+一个问题是classifier阶段要不要用复杂的度量方式，直接使用linear相当于只用了bsnet的欧式距离
+1. 如果不用，则只需要修改util
+2. 如果用，怎么定义classifier.py的linear
+
+先不改classifier.py的linear，只修改util的logits计算方式
+由于bsnet没给出欧式+cos的方式（论文中提到了protonet+cos)，先参照M2L做cos+dn4的
+  具体做法是cos和dn4各自计算一个loss，然后相加，不过这个理论不好解释，如果效果好，再做一个欧式+cos的，这个理论就容易解释
+
+在融合两种度量时，本文使用logits相加的方式。其实还可以使用一种策略，就是两个logits各自输出一个loss,loss（加权）之和反向传播，但是logits采用相乘的策略。
+其中不懂的地方是logits_cos可以直接视为概率，但是logits_dn4意义不明。

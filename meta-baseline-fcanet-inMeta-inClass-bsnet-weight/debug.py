@@ -48,7 +48,10 @@ logits_cos[0,0,:] tensor([0.6816, 0.4036, 0.4062, 0.5474, 0.5820], device='cuda:
        grad_fn=<SliceBackward0>) logits_cos_norm[0,0,:] tensor([0.5698, 0.3374, 0.3396, 0.4576, 0.4865], device='cuda:0',
        grad_fn=<SliceBackward0>)
 
-print()
+print("logits_dn4[0,0,:]",logits_dn4[0,0,:],"logits_cos[0,0,:]",logits_cos[0,0,:],)
+logits_dn4[0,0,:] tensor([13.3586,  8.9643,  9.0234,  9.6951, 11.0557], device='cuda:0',
+       grad_fn=<SliceBackward0>) logits_cos[0,0,:] tensor([0.6816, 0.4036, 0.4062, 0.5474, 0.5820], device='cuda:0',
+       grad_fn=<SliceBackward0>)
 
 
 

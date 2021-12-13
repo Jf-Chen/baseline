@@ -11,3 +11,6 @@
 先不改classifier.py的linear，只修改util的logits计算方式
 由于bsnet没给出欧式+cos的方式（论文中提到了protonet+cos)，先参照M2L做cos+dn4的
   具体做法是cos和dn4各自计算一个loss，然后相加，不过这个理论不好解释，如果效果好，再做一个欧式+cos的，这个理论就容易解释
+
+在融合两种度量时，本文使用logits相加的方式。其实还可以使用一种策略，就是两个logits各自输出一个loss,loss（加权）之和反向传播，但是logits采用相乘的策略。
+其中不懂的地方是logits_cos可以直接视为概率，但是logits_dn4意义不明。

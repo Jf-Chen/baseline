@@ -136,7 +136,7 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
             query_sam = query_sam/query_sam_norm
             """
             
-            query_sam = F.normalize(query_sam,dim=0)
+            query_sam = F.normalize(query_sam,dim=-1)
             #==========================  ==========================#
             
             if torch.cuda.is_available():
@@ -176,8 +176,8 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     # logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
     #logits = logits_dn4_norm + logits_cos_norm
     
-    # return logits_cos , logits_dn4
-    return logits_cos_norm , logits_dn4_norm
+    return logits_cos , logits_dn4
+    # return logits_cos_norm , logits_dn4_norm
 
 
 
