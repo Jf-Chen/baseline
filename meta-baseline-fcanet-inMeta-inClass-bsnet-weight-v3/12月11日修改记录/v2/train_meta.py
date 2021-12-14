@@ -132,9 +132,6 @@ def main(config):
             config['optimizer'], **config['optimizer_args'])
 
     ########
-    # device = torch.device('cuda:0') 
-    # r_cos = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
-    # r_dn4 = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
     
     max_epoch = config['max_epoch']
     save_epoch = config.get('save_epoch')
@@ -142,7 +139,7 @@ def main(config):
     timer_used = utils.Timer()
     timer_epoch = utils.Timer()
 
-    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','r_dn4','r_cos']# ,'logits_dn4_0_0']
+    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va']
     trlog = dict()
     for k in aves_keys:
         trlog[k] = []
@@ -168,16 +165,9 @@ def main(config):
 
             
             #==========================================================================#
-            logits_cos_unview,logits_dn4_unview,r_cos,r_dn4 =  model(x_shot, x_query)
-            logits_cos = logits_cos_unview.view(-1, n_train_way)
-            logits_dn4 = logits_dn4_unview.view(-1, n_train_way)
-            logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
+            logits =  model(x_shot, x_query).view(-1, n_train_way)
+            loss = F.cross_entropy(logits, label)
             acc = utils.compute_acc(logits, label)
-            
-            loss_cos = F.cross_entropy(logits_cos, label)
-            loss_dn4 = F.cross_entropy(logits_dn4, label)
-            
-            loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
             
             """
             logits_dn4,logits_cos = model(x_shot, x_query)# .view(-1, n_train_way)
@@ -205,9 +195,6 @@ def main(config):
 
             aves['tl'].add(loss.item())
             aves['ta'].add(acc)
-            aves['r_dn4'].add(r_dn4.item())
-            aves['r_cos'].add(r_cos.item())
-            # aves['logits_dn4_0_0'].add(
 
 
             logits = None; loss = None 
@@ -232,16 +219,9 @@ def main(config):
                         ep_per_batch=4).cuda()
 
                 with torch.no_grad():
-                    
-                    logits_cos_unview,logits_dn4_unview,r_cos,r_dn4 =  model(x_shot, x_query)
-                    logits_cos = logits_cos_unview.view(-1, n_way)
-                    logits_dn4 = logits_dn4_unview.view(-1, n_way)
-                    logits = torch.mul(logits_cos,logits_dn4) 
+                    logits = model(x_shot, x_query).view(-1, n_way)
+                    loss = F.cross_entropy(logits, label)
                     acc = utils.compute_acc(logits, label)
-                    
-                    loss_cos = F.cross_entropy(logits_cos, label)
-                    loss_dn4 = F.cross_entropy(logits_dn4, label)
-                    loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
                 
                 aves[name_l].add(loss.item())
                 aves[name_a].add(acc)
@@ -260,11 +240,9 @@ def main(config):
         t_used = utils.time_str(timer_used.t())
         t_estimate = utils.time_str(timer_used.t() / epoch * max_epoch)
         utils.log('epoch {}, train {:.4f}|{:.4f}, tval {:.4f}|{:.4f}, '
-                'val {:.4f}|{:.4f}, {} {}/{} (@{}),r_dn4 {: .4f}, r_cos {: .4f}'.format(
+                'val {:.4f}|{:.4f}, {} {}/{} (@{})'.format(
                 epoch, aves['tl'], aves['ta'], aves['tvl'], aves['tva'],
-                aves['vl'], aves['va'], t_epoch, t_used, t_estimate, _sig
-                , aves['r_dn4'],aves['r_cos']))
-        # 应该把logits的数值也打印出来
+                aves['vl'], aves['va'], t_epoch, t_used, t_estimate, _sig))
 
         writer.add_scalars('loss', {
             'train': aves['tl'],
@@ -275,11 +253,6 @@ def main(config):
             'train': aves['ta'],
             'tval': aves['tva'],
             'val': aves['va'],
-        }, epoch)
-        
-        writer.add_scalars('weight', {
-            'r_dn4': aves['r_dn4'],
-            'r_cos': aves['r_cos'],
         }, epoch)
 
         if config.get('_parallel'):

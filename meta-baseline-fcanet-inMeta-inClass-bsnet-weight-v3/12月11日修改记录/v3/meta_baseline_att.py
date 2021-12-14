@@ -19,9 +19,7 @@ class MetaBaseline(nn.Module):
         #----------------------------------------------------------#
         self.neighbor_k = neighbor_k
         self.encoder_name = encoder
-        # 初始化为0和1
-        self.r_dn4 = nn.Parameter(torch.ones(1),requires_grad=True)
-        self.r_cos = nn.Parameter(torch.ones(1),requires_grad=True)
+        self.r = nn.Parameter(torch.ones(2),requires_grad=True)
         #--------------------------end-----------------------------#
 
         if temp_learnable:
@@ -78,16 +76,14 @@ class MetaBaseline(nn.Module):
             # x_shot_aft [4, 5, 5, 640, 5, 5] 
             # x_query_aft [4, 75, 640, 5, 5]
             logits_cos , logits_dn4 = compute_dn4_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
-            # logits = self.r_cos * logits_cos + self.r_dn4 * logits_dn4 
-            # logits = self.r_cos * logits_cos + (1-self.r_cos) * logits_dn4 
-            return logits_cos,logits_dn4,self.r_cos,self.r_dn4
+            # logits = [logits_dn4,logits]
+            logits = self.r[0]*logits_cos + self.r[1]*0.01*logits_dn4 
         #==================================================================#
-
         elif self.method == 'dn4':
             logits_dn4,logits = compute_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
             logits = logits_dn4
         
-        return logits,self.r_dn4,self.r_cos
+        return logits
 
 #========================== mix dn4 & cos  ==========================#
 # 
@@ -130,14 +126,10 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
         Similarity_list = []
         for j in range(num_q):
             query_sam = query_mix[i,j,:,:] # [25, 640]
-            #========================== 改成和cos一样的norm ==========================#
-            """
             query_sam_norm = torch.norm(query_sam, 2, 1, True)   
             query_sam = query_sam/query_sam_norm
-            """
             
-            query_sam = F.normalize(query_sam,dim=-1)
-            #==========================  ==========================#
+            
             
             if torch.cuda.is_available():
                 inner_sim = torch.zeros(1, base_mix.shape[1]).cuda()
@@ -145,19 +137,11 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
             for k in range(base_mix.shape[1]):
                 # 需要转置，但也许要在正则化前/后
                 support_set_sam = base_mix[i,k,:,:]
-                
-                #========================== 改成和cos一样的norm ==========================#
-                """
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
                 support_set_sam = support_set_sam/support_set_sam_norm
                 support_set_sam_t = torch.transpose(support_set_sam,0,1)
                 innerproduct_matrix = query_sam@support_set_sam_t
-                """
                 
-                support_set_sam = F.normalize(support_set_sam, dim=-1)
-                support_set_sam_t = torch.transpose(support_set_sam,0,1)
-                innerproduct_matrix = query_sam@support_set_sam_t
-                #==========================  ==========================#
                 topk_value, topk_index = torch.topk(innerproduct_matrix, neighbor_k, 1)
                 inner_sim[0, k] = torch.sum(topk_value)/neighbor_k # 除以5试试
                 
@@ -172,12 +156,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
 
     
     # 只输出一个logits
-    # logits_dn4_norm = torch.nn.functional.normalize(logits_dn4,p=2,dim=-1)
-    # logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
+    #logits_dn4_norm = torch.nn.functional.normalize(logits_dn4,p=2,dim=-1)
+    #logits_cos_norm = torch.nn.functional.normalize(logits_cos,p=2,dim=-1)
     #logits = logits_dn4_norm + logits_cos_norm
     
-    return logits_cos , logits_dn4
-    # return logits_cos_norm , logits_dn4_norm
+    return logits_cos , logits_dn4 
+    
 
 
 

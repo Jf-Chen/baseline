@@ -131,12 +131,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
         for j in range(num_q):
             query_sam = query_mix[i,j,:,:] # [25, 640]
             #========================== 改成和cos一样的norm ==========================#
-            """
+            
             query_sam_norm = torch.norm(query_sam, 2, 1, True)   
             query_sam = query_sam/query_sam_norm
-            """
             
-            query_sam = F.normalize(query_sam,dim=-1)
+            
+            # query_sam = F.normalize(query_sam,dim=-1)
             #==========================  ==========================#
             
             if torch.cuda.is_available():
@@ -144,22 +144,24 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
             
             for k in range(base_mix.shape[1]):
                 # 需要转置，但也许要在正则化前/后
-                support_set_sam = base_mix[i,k,:,:]
+                support_set_sam = base_mix[i,k,:,:] # [25,640]
                 
                 #========================== 改成和cos一样的norm ==========================#
-                """
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                support_set_sam = support_set_sam/support_set_sam_norm
-                support_set_sam_t = torch.transpose(support_set_sam,0,1)
-                innerproduct_matrix = query_sam@support_set_sam_t
-                """
                 
+                support_set_sam_norm = torch.norm(support_set_sam, 2, 1, True)
+                support_set_sam = support_set_sam/support_set_sam_norm
+                support_set_sam_t = torch.transpose(support_set_sam,0,1) #[640,25]
+                innerproduct_matrix = query_sam@support_set_sam_t # [25, 640]*[640,25]=[25,25]
+                
+                """
                 support_set_sam = F.normalize(support_set_sam, dim=-1)
                 support_set_sam_t = torch.transpose(support_set_sam,0,1)
                 innerproduct_matrix = query_sam@support_set_sam_t
+                # innerproduct_matrix = F.cosine_similarity(query_sam, support_set_sam) # 这只能得到一个[25],而不是[25,25]
+                """
                 #==========================  ==========================#
                 topk_value, topk_index = torch.topk(innerproduct_matrix, neighbor_k, 1)
-                inner_sim[0, k] = torch.sum(topk_value)/neighbor_k # 除以5试试
+                inner_sim[0, k] = torch.sum(topk_value)/neighbor_k # 除以5试试 # 可以试试平方再开方
                 
             Similarity_list.append(inner_sim)
         

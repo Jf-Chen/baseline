@@ -142,7 +142,7 @@ def main(config):
     timer_used = utils.Timer()
     timer_epoch = utils.Timer()
 
-    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','r_dn4','r_cos']# ,'logits_dn4_0_0']
+    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','r_dn4','r_cos','loss_cos','loss_dn4']# ,'logits_dn4_0_0']
     trlog = dict()
     for k in aves_keys:
         trlog[k] = []
@@ -171,7 +171,7 @@ def main(config):
             logits_cos_unview,logits_dn4_unview,r_cos,r_dn4 =  model(x_shot, x_query)
             logits_cos = logits_cos_unview.view(-1, n_train_way)
             logits_dn4 = logits_dn4_unview.view(-1, n_train_way)
-            logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
+            logits = logits_cos # 仅仅将logits_dn4作为抑制项
             acc = utils.compute_acc(logits, label)
             
             loss_cos = F.cross_entropy(logits_cos, label)
@@ -207,6 +207,8 @@ def main(config):
             aves['ta'].add(acc)
             aves['r_dn4'].add(r_dn4.item())
             aves['r_cos'].add(r_cos.item())
+            aves['loss_cos'].add(loss_cos.item())
+            aves['loss_dn4'].add(loss_dn4.item())
             # aves['logits_dn4_0_0'].add(
 
 
@@ -216,9 +218,9 @@ def main(config):
         # eval
         model.eval()
 
-        for name, loader, name_l, name_a in [
-                ('tval', tval_loader, 'tvl', 'tva'),
-                ('val', val_loader, 'vl', 'va')]:
+        for name, loader, name_l, name_a ,name_loss_cos in [
+                ('tval', tval_loader, 'tvl', 'tva','loss_cos'),
+                ('val', val_loader, 'vl', 'va','loss_cos')]:
 
             if (config.get('tval_dataset') is None) and name == 'tval':
                 continue
@@ -233,18 +235,21 @@ def main(config):
 
                 with torch.no_grad():
                     
+                    #==========================================================================#
                     logits_cos_unview,logits_dn4_unview,r_cos,r_dn4 =  model(x_shot, x_query)
                     logits_cos = logits_cos_unview.view(-1, n_way)
                     logits_dn4 = logits_dn4_unview.view(-1, n_way)
-                    logits = torch.mul(logits_cos,logits_dn4) 
+                    logits = logits_cos # 仅仅将logits_dn4作为抑制项
                     acc = utils.compute_acc(logits, label)
                     
                     loss_cos = F.cross_entropy(logits_cos, label)
                     loss_dn4 = F.cross_entropy(logits_dn4, label)
+                    
                     loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
                 
                 aves[name_l].add(loss.item())
                 aves[name_a].add(acc)
+                aves[name_loss_cos].add(loss_cos.item())
 
         _sig = int(_[-1])
 
@@ -270,6 +275,8 @@ def main(config):
             'train': aves['tl'],
             'tval': aves['tvl'],
             'val': aves['vl'],
+            'loss_cos':aves['loss_cos'],
+            'loss_dn4':aves['loss_dn4'],
         }, epoch)
         writer.add_scalars('acc', {
             'train': aves['ta'],
