@@ -47,7 +47,7 @@ def main(config):
     beta = 1.0 # beta
     if config.get('beta'):
         beta = config['beta']
-    cutmix_prob= = 0.5 # cutmix_prob
+    cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
     #---------end----------#
