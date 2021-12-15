@@ -118,11 +118,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
     query_temp = query.view(query.shape[0], query.shape[1], query.shape[2],-1) # [4,75,5*5,640,] # [ep,q,h*w,dim]
     query_mix = query_temp.permute(0,1,3,2)
     
-    # base_mix torch.Size([4, 5, 25, 640])
+    # base_mix torch.Size([4, 5, 125, 640])
     # query_mix torch.Size([4, 75, 25, 640])
     
     batch=query_mix.size()[0]
     num_q=query_mix.size()[1]
+    hw_q=query_mix.size()[1]
     
     logits_dn4=[]
     
@@ -144,14 +145,14 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
             
             for k in range(base_mix.shape[1]):
                 # 需要转置，但也许要在正则化前/后
-                support_set_sam = base_mix[i,k,:,:] # [25,640]
+                support_set_sam = base_mix[i,k,:,:] # [125,640]
                 
                 #========================== 改成和cos一样的norm ==========================#
                 
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 1, True)
                 support_set_sam = support_set_sam/support_set_sam_norm
-                support_set_sam_t = torch.transpose(support_set_sam,0,1) #[640,25]
-                innerproduct_matrix = query_sam@support_set_sam_t # [25, 640]*[640,25]=[25,25]
+                support_set_sam_t = torch.transpose(support_set_sam,0,1) #[640,125]
+                innerproduct_matrix = query_sam@support_set_sam_t # [25, 640]*[640,25]=[25,125]
                 
                 """
                 support_set_sam = F.normalize(support_set_sam, dim=-1)
@@ -161,7 +162,12 @@ def compute_dn4_cos_mix(base,query,neighbor_k):
                 """
                 #==========================  ==========================#
                 topk_value, topk_index = torch.topk(innerproduct_matrix, neighbor_k, 1)
-                inner_sim[0, k] = torch.sum(topk_value)/neighbor_k # 除以5试试 # 可以试试平方再开方
+                # topk_value [25,5] 意为query中每个hw都找5个最相似的
+                # inner_sim[0, k] = torch.sum(topk_value)/(neighbor_k * hw_q) # 除以5试试 
+                
+                # 可以试试平方再开方
+                sqr_topk_value = torch.mul(topk_value , topk_value)
+                inner_sim[0, k] = torch.sum(sqr_topk_value).sqrt() /(neighbor_k * hw_q)
                 
             Similarity_list.append(inner_sim)
         

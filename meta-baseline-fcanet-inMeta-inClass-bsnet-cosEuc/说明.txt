@@ -1,0 +1,6 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. 经过考虑，使用dn4+cos的度量方式（偏向MML）
+4. 修改了loss和logits，loss采用加权求和的方式，而logits=logits_cos，作为分类的概率，loss_dn4仅作为抑制项出现
+5. 当然，loss可以进一步进行修改
+

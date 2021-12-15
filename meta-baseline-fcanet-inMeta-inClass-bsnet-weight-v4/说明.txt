@@ -1,0 +1,17 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. 经过考虑，使用dn4+cos的度量方式（偏向MML）
+4. 修改了logits_dn4，/（neighbor_k * hw_q)
+5. 修改了loss和logits，而logits=a*logits_cos+b*logits_dn4，作为acc的判断标准，a和b作为meta-baseline-att的一部分保留
+
+其他计划
+1. 可以对logits_dn4进一步修改，目前的logits_dn4是query每个hw都取了5个相似的，
+	但query的hw并不平等，可以视相似度的值，保留一部分作为query的hw作为logits_dn4,
+	也就是
+		topk_value [25,5] 
+		topk_value_view = topk_value.view(-1,1)
+		topk_view = torch.topk(topk_value_view,hw_q,0) # [25,1] 只保留最相似的特征
+		value = torch.sum(topk_view)/(hw_q) 
+		
+
+

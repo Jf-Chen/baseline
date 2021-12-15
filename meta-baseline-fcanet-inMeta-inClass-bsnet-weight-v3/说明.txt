@@ -4,3 +4,7 @@
 4. 修改了loss和logits，loss采用加权求和的方式，而logits=logits_cos，作为分类的概率，loss_dn4仅作为抑制项出现
 5. 当然，loss可以进一步进行修改
 
+其他计划
+1. 对logits_dn4采用平方、求和再开方的方式，抑制不相似部分的影响
+2. 将logits_dn4作为acc的判定标准之一
+
