@@ -196,11 +196,13 @@ def main(config):
                 logits_cos = logits_cos.view(-1, n_train_way)
                 logits = (logits_KL+logits_cos)/2
                 
+                acc = utils.compute_acc(logits, target)
+                
                 loss  = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
                 loss_cos = criterion(logits_cos, target_a) * lam + criterion(logits_cos, target_b) * (1. - lam)
                 loss_KL = criterion(logits_KL, target_a) * lam + criterion(logits_KL, target_b) * (1. - lam)
                 # loss = loss_cos * r_cos + loss_KL * (1-r_cos)
-                
+                acc = utils.compute_acc(logits, target_a)* lam + utils.compute_acc(logits, target_b)* (1. - lam)
                 
             else:
                 # compute output
@@ -209,6 +211,7 @@ def main(config):
                 logits_cos = logits_cos.view(-1, n_train_way)
                 logits = (logits_KL+logits_cos)/2
                 loss = criterion(logits, target)
+                acc = utils.compute_acc(logits, target)
 
             #=============================================================================#
 
@@ -272,6 +275,7 @@ def main(config):
                         loss_cos = criterion(logits_cos, target_a) * lam + criterion(logits_cos, target_b) * (1. - lam)
                         loss_KL = criterion(logits_KL, target_a) * lam + criterion(logits_KL, target_b) * (1. - lam)
                         # loss = loss_cos * r_cos + loss_KL * (1-r_cos)
+                        acc = utils.compute_acc(logits, target_a)* lam + utils.compute_acc(logits, target_b)* (1. - lam)
                         
                     else:
                         # compute output
@@ -280,6 +284,7 @@ def main(config):
                         logits_cos = logits_cos.view(-1, n_way)
                         logits = (logits_KL+logits_cos)/2
                         loss = criterion(logits, target)
+                        acc = utils.compute_acc(logits, target)
 
                     #=============================================================================#
                 

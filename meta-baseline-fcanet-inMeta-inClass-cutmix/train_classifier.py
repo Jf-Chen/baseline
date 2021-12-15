@@ -123,7 +123,7 @@ def main(config):
 
     if eval_fs:
         # fs_model = models.make('meta-baseline', encoder=None)
-        fs_model = models.make('meta-baseline-att', encoder=None)
+        fs_model = models.make('meta-baseline-att', **config['fs_model_args'])
         fs_model.encoder = model.encoder
 
     if config.get('_parallel'):
@@ -172,7 +172,7 @@ def main(config):
             data, label = data.cuda(), label.cuda()
             #==========================================
             r = np.random.rand(1)
-            tempSignal = "true"
+            use_cut_mix = True
             if beta > 0 and r < cutmix_prob:
                 # generate mixed sample
                 lam = np.random.beta(beta, beta)
@@ -186,14 +186,14 @@ def main(config):
                 # compute output
                 output = model(data)
                 loss = criterion(output, target_a) * lam + criterion(output, target_b) * (1. - lam)
-                tempSignal=  "true"
+                use_cut_mix = True
             else:
                 # compute output
                 output = model(data)
                 loss = criterion(output, label)
-                tempSignal = "false"
-            tempStr = 'epoch: {}, r:{.4f} ,tempSignal: {}'.format(epoch,r,tempSignal)
-            utils.log(tempStr,"cutmix_log.txt")
+                use_cut_mix = False
+            #tempStr = 'epoch: %s , r: %.4f ,use_cut_mix: %s'%(epoch,r,use_cut_mix)
+            #utils.log_cutmix(tempStr,"cutmix_log.txt")
             
             #loss, err1, err5 = utils.cutmix_criterion(data,label,beta,cutmix_prob,model,criterion)
             logits = output
@@ -238,8 +238,19 @@ def main(config):
                     label = fs.make_nk_label(
                             n_way, n_query, ep_per_batch=4).cuda()
                     with torch.no_grad():
-                        logits = fs_model(x_shot, x_query).view(-1, n_way)
+
+                        
+                        # compute output
+                        support =  x_shot
+                        query =  x_query
+                        logits_KL,logits_cos =  fs_model(support, query)
+                        logits_KL,logits_cos =  fs_model(support, query)
+                        logits_KL = logits_KL.view(-1, n_way)
+                        logits_cos = logits_cos.view(-1, n_way)
+                        logits = (logits_KL+logits_cos)/2
+                        loss = criterion(logits, label)
                         acc = utils.compute_acc(logits, label)
+                        
                     aves['fsa-' + str(n_shot)].add(acc)
 
         # post

@@ -111,7 +111,7 @@ def compute_KL_cos(base,query,neighbor_k):
     ## KL相似度
     Similarity_list = []
 
-    b = query_size()[0]
+    b = query.size()[0]
     q_num =query.size(1)
     c = query.size(2)
     h=query.size(3)
@@ -124,7 +124,7 @@ def compute_KL_cos(base,query,neighbor_k):
     input2_batch = base.view(b,way*shot,c,h*w)
     input2_batch = input2_batch.permute(0,1,3,2)
     shot_num  = base.size()[2]
-    for i in range(self.batch_size):
+    for i in range(b):
         input1 = input1_batch[i] # [q_num,H*W,C]
         input2 = input2_batch[i] # [shot*way,H*W,C]
 
@@ -133,18 +133,18 @@ def compute_KL_cos(base,query,neighbor_k):
         input2_norm = torch.norm(input2, 2, 2, True)
 
         # Calculate the mean and covariance of the all the query images
-        query_mean, query_cov = self.cal_covariance_matrix_Batch(
+        query_mean, query_cov = cal_covariance_matrix_Batch(
             input1) # [75, 1, 64] [75, 1, 64]
 
         # Calculate the mean and covariance of the support set
         support_set = input2.contiguous().view(-1,
                                                shot * input2.size(1), input2.size(2))
         # [5,5*441,C] [way,shot*HW,C]
-        s_mean, s_cov = self.cal_covariance_matrix_Batch(support_set) # [5, 1, 64] [5, 64, 64]
+        s_mean, s_cov = cal_covariance_matrix_Batch(support_set) # [5, 1, 64] [5, 64, 64]
 
         # Find the remaining support set
-        support_set_remain = self.support_remaining(support_set) # [5, 8820, 64] [way,(way-1)*shot*HW,C] [某类,去除该类*shot*HW,C]
-        s_remain_mean, s_remain_cov = self.cal_covariance_matrix_Batch(
+        support_set_remain = support_remaining(support_set) # [5, 8820, 64] [way,(way-1)*shot*HW,C] [某类,去除该类*shot*HW,C]
+        s_remain_mean, s_remain_cov = cal_covariance_matrix_Batch(
             support_set_remain) # [5, 1, 64] [5, 64, 64]
         
         # Calculate the Wasserstein Distance
@@ -166,11 +166,14 @@ def compute_KL_cos(base,query,neighbor_k):
     
 def KL_distance_Batch(mean1, cov1, mean2, cov2):
 
+    q_num = cov2.size()[0]
+    C = cov2.size()[2]
+    way  = cov1.size()[0]
     cov2_inverse = torch.inverse(cov2)
     mean_diff = mean1 - mean2.squeeze(1)
     # Calculate the trace
-    matrix_product = torch.matmul(cov1.unsqueeze(1), cov2_inverse)
-    matrix_product = matrix_product.contiguous().view(75, 5, 64, 64)
+    matrix_product = torch.matmul(cov1.unsqueeze(1), cov2_inverse) # 本来是[75,5,64,64]
+    matrix_product = matrix_product.contiguous().view(q_num, way, C, C)
     trace_dis = [torch.trace(matrix_product[j][i]).unsqueeze(0) for j in range(matrix_product.size(0)) for i in
                  range(matrix_product.size(1))]
     trace_dis = torch.cat(trace_dis, 0)
@@ -189,6 +192,31 @@ def KL_distance_Batch(mean1, cov1, mean2, cov2):
 
     return KL_dis / 2.
 
+def cal_covariance_matrix_Batch( feature):
+    n_local_descriptor = torch.tensor(feature.size(1)).cuda()
+    feature_mean = torch.mean(feature, 1, True)
+    feature = feature - feature_mean
+    cov_matrix = torch.matmul(feature.permute(0, 2, 1), feature)
+    cov_matrix = torch.div(cov_matrix, n_local_descriptor - 1)
+    cov_matrix = cov_matrix + 0.01 * torch.eye(cov_matrix.size(1)).cuda()
+
+    return feature_mean, cov_matrix
+
+def support_remaining( S):
+
+    S_new = []
+    for ii in range(S.size(0)):
+        indices = [j for j in range(S.size(0))]
+        indices.pop(ii)
+        indices = torch.tensor(indices).cuda()
+
+        S_clone = S.clone()
+        S_remain = torch.index_select(S_clone, 0, indices)
+        S_remain = S_remain.contiguous().view(-1, S_remain.size(2))
+        S_new.append(S_remain.unsqueeze(0))
+
+    S_new = torch.cat(S_new, 0)
+    return S_new
 
 #========================== mix dn4 & cos  ==========================#
 # 

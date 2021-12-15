@@ -29,6 +29,11 @@ def log(obj, filename='log.txt'):
         with open(os.path.join(_log_path, filename), 'a') as f:
             print(obj, file=f)
 
+def log_cutmix(obj, filename='log.txt'):
+    if _log_path is not None:
+        with open(os.path.join(_log_path, filename), 'a') as f:
+            print(obj, file=f)
+
 
 class Averager():
 
