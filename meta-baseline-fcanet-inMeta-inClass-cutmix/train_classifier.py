@@ -33,6 +33,8 @@ def main(config):
     save_path = os.path.join('./save', svname)
     utils.ensure_path(save_path)
     utils.set_log_path(save_path)
+    ##===========================================##
+    utils.set_log_path_cutmix(os.path.join('./save', "cutmix_beta"))
     writer = SummaryWriter(os.path.join(save_path, 'tensorboard'))
 
     yaml.dump(config, open(os.path.join(save_path, 'config.yaml'), 'w')) 
@@ -170,6 +172,7 @@ def main(config):
             data, label = data.cuda(), label.cuda()
             #==========================================
             r = np.random.rand(1)
+            tempSignal = "true"
             if beta > 0 and r < cutmix_prob:
                 # generate mixed sample
                 lam = np.random.beta(beta, beta)
@@ -183,10 +186,14 @@ def main(config):
                 # compute output
                 output = model(data)
                 loss = criterion(output, target_a) * lam + criterion(output, target_b) * (1. - lam)
+                tempSignal=  "true"
             else:
                 # compute output
                 output = model(data)
                 loss = criterion(output, label)
+                tempSignal = "false"
+            tempStr = 'epoch: {}, r:{.4f} ,tempSignal: {}'.format(epoch,r,tempSignal)
+            utils.log(tempStr,"cutmix_log.txt")
             
             #loss, err1, err5 = utils.cutmix_criterion(data,label,beta,cutmix_prob,model,criterion)
             logits = output

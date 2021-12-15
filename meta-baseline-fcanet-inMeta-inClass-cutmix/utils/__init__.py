@@ -13,10 +13,15 @@ from . import few_shot
 
 
 _log_path = None
+_log_path_cutmix = None
 
 def set_log_path(path):
     global _log_path
     _log_path = path
+
+def set_log_path_cutmix(path):
+    global _log_path_cutmix
+    _log_path_cutmix = path
 
 def log(obj, filename='log.txt'):
     print(obj)
