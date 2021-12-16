@@ -170,6 +170,9 @@ def freeze_bn(model):
             m.eval()
 
 def rand_bbox(size, lam):
+    # 对于classifier,size是[128,3,80,80]
+    # 对于meta,size是[[2, 75, 3, 80, 80]
+    # 为了减少修改，还是让meta适应rand_bbox
     W = size[2]
     H = size[3]
     cut_rat = np.sqrt(1. - lam)

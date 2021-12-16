@@ -170,6 +170,8 @@ def main(config):
         criterion = nn.CrossEntropyLoss().cuda()
         for data, label in tqdm(train_loader, desc='train', leave=False):
             data, label = data.cuda(), label.cuda()
+            # data [128, 3, 80, 80] 
+            # label [128]
             #==========================================
             r = np.random.rand(1)
             use_cut_mix = True
@@ -185,6 +187,7 @@ def main(config):
                 lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (data.size()[-1] * data.size()[-2]))
                 # compute output
                 output = model(data)
+                # 这里为什么没有维度不匹配？criterion(output, target_b)
                 loss = criterion(output, target_a) * lam + criterion(output, target_b) * (1. - lam)
                 use_cut_mix = True
             else:

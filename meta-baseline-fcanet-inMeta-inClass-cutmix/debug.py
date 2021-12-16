@@ -48,7 +48,24 @@ logits_cos[0,0,:] tensor([0.6816, 0.4036, 0.4062, 0.5474, 0.5820], device='cuda:
        grad_fn=<SliceBackward0>) logits_cos_norm[0,0,:] tensor([0.5698, 0.3374, 0.3396, 0.4576, 0.4865], device='cuda:0',
        grad_fn=<SliceBackward0>)
 
-print()
+print("lable",label.size(),"target_a",target_a.size(),"target_b",target_b.size())
+
+lable torch.Size([150]) target_a torch.Size([150]) target_b torch.Size([2])
+
+ValueError: Expected input batch_size (150) to match target batch_size (2).
+
+print("data",data.size(),"label",label.size())
+data torch.Size([128, 3, 80, 80]) label torch.Size([128])
+
+print("target_a",target_a.size(),"target_b",target_b.size())
+target_a torch.Size([128]) target_b torch.Size([128])
+
+
+
+
+
+
+
 
 
 

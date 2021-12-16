@@ -43,7 +43,7 @@ def main(config):
     beta = 1.0 # beta
     if config.get('beta'):
         beta = config['beta']
-    cutmix_prob= = 0.5 # cutmix_prob
+    cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
     #---------end----------#
@@ -175,18 +175,30 @@ def main(config):
                     ep_per_batch=ep_per_batch).cuda()
 
             # ====元学习如何使用cutmix，应该是support不变，而query变 ======
-            query = x_query
+            # ==== cutmix源码是按照[num,c,h,w]组织input的,而这里的query,support是按照[batch,num,c,h,w]组织的
+            query = x_query # query torch.Size([2, 75, 3, 80, 80])
             support = x_shot
-            target = label
+            target = label # [150]
             r = np.random.rand(1)
             if beta > 0 and r < cutmix_prob:
                 # generate mixed sample
                 lam = np.random.beta(beta, beta)
-                rand_index = torch.randperm(query.size()[0]).cuda()
+                q_num = query.size()[1]
+                b_num = query.size()[0]
+                
+                # ==== 按照[q_num,c,h,w]组织，排列完之后再还原成[b,q_num,c,h,w] ==== #
+                # 简化一些，同样的batch的rand_index也相同
+                rand_index = torch.randperm(q_num).cuda()
+                
                 target_a = target
-                target_b = target[rand_index]
-                bbx1, bby1, bbx2, bby2 = utils.rand_bbox(query.size(), lam)
-                query[:, :, bbx1:bbx2, bby1:bby2] = query[rand_index, :, bbx1:bbx2, bby1:bby2]
+                target_view = target.reshape(b_num,q_num)
+                target_b = target_view[:,rand_index].reshape(b_num*q_num) # [150]
+                
+                wish_query_size = [b_num*q_num,query.size()[2],query.size()[3],query.size()[4]]
+                bbx1, bby1, bbx2, bby2 = utils.rand_bbox(wish_query_size, lam)
+                
+                query[ :, :, :, bbx1:bbx2, bby1:bby2] = query[ :, rand_index, :, bbx1:bbx2, bby1:bby2]
+
                 # adjust lambda to exactly match pixel ratio
                 lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
                 # compute output
@@ -210,6 +222,8 @@ def main(config):
                 logits_KL = logits_KL.view(-1, n_train_way)
                 logits_cos = logits_cos.view(-1, n_train_way)
                 logits = (logits_KL+logits_cos)/2
+                loss_cos = criterion(logits_cos, target)
+                loss_KL = criterion(logits_KL, target)
                 loss = criterion(logits, target)
                 acc = utils.compute_acc(logits, target)
 
@@ -259,11 +273,20 @@ def main(config):
                     if beta > 0 and r < cutmix_prob:
                         # generate mixed sample
                         lam = np.random.beta(beta, beta)
-                        rand_index = torch.randperm(query.size()[0]).cuda()
+                        q_num = query.size()[1]
+                        b_num = query.size()[0]
+                        # ==== 按照[q_num,c,h,w]组织，排列完之后再还原成[b,q_num,c,h,w] ==== #
+                        # 简化一些，同样的batch的rand_index也相同
+                        rand_index = torch.randperm(q_num).cuda()
                         target_a = target
-                        target_b = target[rand_index]
-                        bbx1, bby1, bbx2, bby2 = utils.rand_bbox(query.size(), lam)
-                        query[:, :, bbx1:bbx2, bby1:bby2] = query[rand_index, :, bbx1:bbx2, bby1:bby2]
+                        target_view = target.reshape(b_num,q_num)
+                        target_b = target_view[:,rand_index].reshape(b_num*q_num) # [150]
+                        
+                        wish_query_size = [b_num*q_num,query.size()[2],query.size()[3],query.size()[4]]
+                        bbx1, bby1, bbx2, bby2 = utils.rand_bbox(wish_query_size, lam)
+                        
+                        query[ :, :, :, bbx1:bbx2, bby1:bby2] = query[ :, rand_index, :, bbx1:bbx2, bby1:bby2]
+
                         # adjust lambda to exactly match pixel ratio
                         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
                         # compute output
