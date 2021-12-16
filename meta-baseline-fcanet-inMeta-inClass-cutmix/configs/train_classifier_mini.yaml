@@ -14,9 +14,9 @@ model_args:
     classifier_args: {n_classes: 64}
 
 batch_size: 128
-max_epoch: 100
-optimizer: adam-stand
-optimizer_args: {lr: 0.1, weight_decay: 5.e-4, milestones: [90]}
+max_epoch: 200
+optimizer: sgd #adam-stand
+optimizer_args: {lr: 0.1, weight_decay: 5.e-4, milestones: [180]}
 
 save_epoch: 5
 visualize_datasets: true
@@ -29,6 +29,6 @@ cutmix_prob: 0.5
 fs_model_args:
     encoder: resnet12-wide-att
     encoder_args: {}
-    method: KLcos
+    method: cos #KLcos
     neighbor_k: 5
 #---------end---------#
