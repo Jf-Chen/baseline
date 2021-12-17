@@ -88,7 +88,7 @@ class MetaBaseline(nn.Module):
             logits_KL,logits_cos = compute_KL_cos(x_shot_aft,x_query_aft,self.neighbor_k)
             # 这里有两种做法，一种是仅仅将KL作为loss的约束，分类时只用cos
             # logits  = self.r_cos * logits_cos + (1-self.r_cos) * logits_KL
-            return logits_KL,logits_cos
+            return logits_KL,logits_cos,self.r_cos
             # return logits 
         
         return logits,self.r_dn4,self.r_cos

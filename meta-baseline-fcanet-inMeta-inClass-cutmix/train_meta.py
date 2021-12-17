@@ -210,21 +210,23 @@ def main(config):
                 
                 acc = utils.compute_acc(logits, target)
                 
-                loss  = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
+                # loss  = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
                 loss_cos = criterion(logits_cos, target_a) * lam + criterion(logits_cos, target_b) * (1. - lam)
                 loss_KL = criterion(logits_KL, target_a) * lam + criterion(logits_KL, target_b) * (1. - lam)
-                # loss = loss_cos * r_cos + loss_KL * (1-r_cos)
+                # loss = loss_cos  + loss_KL 
+                loss = loss_cos * r_cos + loss_KL * (1-r_cos)
                 acc = utils.compute_acc(logits, target_a)* lam + utils.compute_acc(logits, target_b)* (1. - lam)
                 
             else:
                 # compute output
-                logits_KL,logits_cos =  model(support, query)
+                logits_KL,logits_cos,r_cos =  model(support, query)
                 logits_KL = logits_KL.view(-1, n_train_way)
                 logits_cos = logits_cos.view(-1, n_train_way)
                 logits = (logits_KL+logits_cos)/2
                 loss_cos = criterion(logits_cos, target)
                 loss_KL = criterion(logits_KL, target)
-                loss = criterion(logits, target)
+                # loss = criterion(logits, target)
+                loss = loss_cos * r_cos + loss_KL * (1-r_cos)
                 acc = utils.compute_acc(logits, target)
 
             #=============================================================================#
@@ -236,7 +238,7 @@ def main(config):
 
             aves['tl'].add(loss.item())
             aves['ta'].add(acc)
-            # aves['r_cos'].add(r_cos.item())
+            aves['r_cos'].add(r_cos.item())
             aves['loss_cos'].add(loss_cos.item())
             aves['loss_KL'].add(loss_KL.item())
             # aves['logits_dn4_0_0'].add(
@@ -290,23 +292,24 @@ def main(config):
                         # adjust lambda to exactly match pixel ratio
                         lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
                         # compute output
-                        logits_KL,logits_cos =  model(support, query)
+                        logits_KL,logits_cos,r_cos =  model(support, query)
                         logits_KL = logits_KL.view(-1, n_way)
                         logits_cos = logits_cos.view(-1, n_way)
                         logits = (logits_KL+logits_cos)/2
-                        loss  = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
+                        # loss  = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
                         loss_cos = criterion(logits_cos, target_a) * lam + criterion(logits_cos, target_b) * (1. - lam)
                         loss_KL = criterion(logits_KL, target_a) * lam + criterion(logits_KL, target_b) * (1. - lam)
-                        # loss = loss_cos * r_cos + loss_KL * (1-r_cos)
+                        loss = loss_cos * r_cos + loss_KL * (1-r_cos)
                         acc = utils.compute_acc(logits, target_a)* lam + utils.compute_acc(logits, target_b)* (1. - lam)
                         
                     else:
                         # compute output
-                        logits_KL,logits_cos =  model(support, query)
+                        logits_KL,logits_cos,r_cos =  model(support, query)
                         logits_KL = logits_KL.view(-1, n_way)
                         logits_cos = logits_cos.view(-1, n_way)
                         logits = (logits_KL+logits_cos)/2
-                        loss = criterion(logits, target)
+                        loss = loss_cos * r_cos + loss_KL * (1-r_cos)
+                        #loss = criterion(logits, target)
                         acc = utils.compute_acc(logits, target)
 
                     #=============================================================================#
@@ -346,7 +349,9 @@ def main(config):
             'tval': aves['tva'],
             'val': aves['va'],
         }, epoch)
-        
+        writer.add_scalars('r', {
+            'r_cos': aves['r_cos'],
+        }, epoch)
 
         if config.get('_parallel'):
             model_ = model.module
