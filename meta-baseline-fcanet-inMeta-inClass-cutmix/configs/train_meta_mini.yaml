@@ -30,6 +30,6 @@ visualize_datasets: True
 #--------添加的-------#
 num_workers: 2
 pin_memory : false
-beta: 0.8
+beta: 0.2
 cutmix_prob: 0.5
 #---------end---------#

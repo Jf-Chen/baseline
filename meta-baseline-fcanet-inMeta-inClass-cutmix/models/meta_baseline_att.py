@@ -51,12 +51,12 @@ class MetaBaseline(nn.Module):
         x_query_att=x_query
         
         x_shot_aft = x_shot_att.view(*shot_shape,dimension,h ,w) # [4,5,1,640,5,5]
-        x_query_aft = x_query_att.view(*query_shape, dimension,h ,w)
+        x_query_aft = x_query_att.view(*query_shape, dimension,h ,w) # [b,q_num,c,h,w]
         
         # avgpool
         # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
-        x_shot_pool = x_shot_aft.view(x_shot_aft.shape[0], x_shot_aft.shape[1],x_shot_aft.shape[2],x_shot_aft.shape[3], -1).mean(dim=4) # [4,5,1,640]
-        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], x_query_aft.shape[2],-1).mean(dim=3)
+        x_shot_pool = x_shot_aft.view(x_shot_aft.shape[0], x_shot_aft.shape[1],x_shot_aft.shape[2],x_shot_aft.shape[3], -1).mean(dim=4) # [4, 5, 5, 640]
+        x_query_pool = x_query_aft.view(x_query_aft.shape[0], x_query_aft.shape[1], x_query_aft.shape[2],-1).mean(dim=3) # [b,q_num,c,h*w]->[b,q_num,c] [4, 75, 640]
         #--------------------
           
         # print("x_shot",x_shot.size(),"x_query",x_query.size(),"x_shot_att",x_shot_att.size(),"x_query_att",x_query_att.size())
@@ -67,7 +67,7 @@ class MetaBaseline(nn.Module):
             metric = 'dot'
             logits = utils.compute_logits(
                 x_query_F, x_shot_F, metric=metric, temp=self.temp)
-            return logits
+            return logits,logits,self.r_cos
         elif self.method == 'sqr':
             x_shot = x_shot.mean(dim=-2)
             metric = 'sqr'
@@ -90,6 +90,14 @@ class MetaBaseline(nn.Module):
             # logits  = self.r_cos * logits_cos + (1-self.r_cos) * logits_KL
             return logits_KL,logits_cos,self.r_cos
             # return logits 
+        elif self.method == 'cos_my':
+            x_shot_mean = x_shot_pool.mean(dim=-2)
+            x_shot_F = F.normalize(x_shot_mean, dim=-1)
+            x_query_F = F.normalize(x_query_pool, dim=-1)
+            metric = 'dot'
+            logits = utils.compute_logits(
+                x_query_F, x_shot_F, metric=metric, temp=self.temp)
+            return logits,logits,self.r_cos
         
         return logits,self.r_dn4,self.r_cos
 
@@ -135,7 +143,7 @@ def compute_KL_cos(base,query,neighbor_k):
 
         # Calculate the mean and covariance of the all the query images
         query_mean, query_cov = cal_covariance_matrix_Batch(
-            input1) # [75, 1, 64] [75, 1, 64]
+            input1) # [75, 1, 64] [75, 64, 64]
 
         # Calculate the mean and covariance of the support set
         support_set = input2.contiguous().view(-1,
@@ -170,7 +178,7 @@ def KL_distance_Batch(mean1, cov1, mean2, cov2):
     q_num = cov2.size()[0]
     C = cov2.size()[2]
     way  = cov1.size()[0]
-    cov2_inverse = torch.inverse(cov2) # 当torch.version.cuda和GPU的CUDA Version不一致时可能出错
+    cov2_inverse = torch.inverse(cov2) # 当cov2不可逆时可能出错
     mean_diff = mean1 - mean2.squeeze(1)
     # Calculate the trace
     matrix_product = torch.matmul(cov1.unsqueeze(1), cov2_inverse) # 本来是[75,5,64,64]
