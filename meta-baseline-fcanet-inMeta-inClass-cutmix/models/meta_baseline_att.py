@@ -170,7 +170,7 @@ def KL_distance_Batch(mean1, cov1, mean2, cov2):
     q_num = cov2.size()[0]
     C = cov2.size()[2]
     way  = cov1.size()[0]
-    cov2_inverse = torch.inverse(cov2)
+    cov2_inverse = torch.inverse(cov2) # 当torch.version.cuda和GPU的CUDA Version不一致时可能出错
     mean_diff = mean1 - mean2.squeeze(1)
     # Calculate the trace
     matrix_product = torch.matmul(cov1.unsqueeze(1), cov2_inverse) # 本来是[75,5,64,64]

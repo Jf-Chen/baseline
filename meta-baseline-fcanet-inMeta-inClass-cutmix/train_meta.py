@@ -203,7 +203,7 @@ def main(config):
                 # adjust lambda to exactly match pixel ratio
                 lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
                 # compute output
-                logits_KL,logits_cos =  model(support, query)
+                logits_KL,logits_cos,r_cos =  model(support, query)
                 
                 logits_KL = logits_KL.view(-1, n_train_way)
                 logits_cos = logits_cos.view(-1, n_train_way)
