@@ -149,7 +149,8 @@ def main(config):
     timer_epoch = utils.Timer()
 
     # aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','r_dn4','r_cos','loss_cos','loss_dn4']# ,'logits_dn4_0_0']
-    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','loss_cos','loss_KL']
+    # aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','loss_cos','loss_KL']
+    aves_keys = ['tl', 'ta', 'tvl', 'tva', 'vl', 'va','loss_cos','loss_KL','r_cos']
     trlog = dict()
     for k in aves_keys:
         trlog[k] = []
