@@ -60,6 +60,11 @@ data torch.Size([128, 3, 80, 80]) label torch.Size([128])
 print("target_a",target_a.size(),"target_b",target_b.size())
 target_a torch.Size([128]) target_b torch.Size([128])
 
+print("mean1",mean1.size(), "cov1", cov1.size(), "mean2",mean2.size(), "cov2",cov2.size())
+mean1 torch.Size([5, 1, 640]) cov1 torch.Size([5, 640, 640]) mean2 torch.Size([75, 1, 640]) cov2 torch.Size([75, 640, 640])
+
+cov2_inverse = torch.inverse(cov2)
+print(cov2_inverse.size())
 
 
 
