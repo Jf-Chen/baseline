@@ -220,7 +220,7 @@ def main(config):
                 ##   r_wass指示一个系数，r_wass绝对值越大，证明loss_wass越重要，
                 #    同时起点也是cos:wass = 1：0的关系
                 
-                loss = loss_cos * (1/(1+r_wass*r_wass) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass)
+                loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                 ####
                 #=============================================================#
                 
@@ -237,8 +237,8 @@ def main(config):
                 loss_cos = criterion(logits_cos, target)
                 loss_KL = criterion(logits_KL, target)
                 
-                loss = loss_cos * (1/(1+r_wass*r_wass) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass)
-                logits = logits_cos* (1/(1+r_wass*r_wass) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass)
+                loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
+                logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
                 acc = utils.compute_acc(logits, target)
 
             #=============================================================================#
@@ -286,9 +286,9 @@ def main(config):
                     logits_KL,logits_cos,r_wass =  model(support, query)
                     logits_KL = logits_KL.view(-1, n_way)
                     logits_cos = logits_cos.view(-1, n_way)
-                    logits = logits_cos* (1/(1+r_wass*r_wass) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass)
+                    logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
                     acc = utils.compute_acc(logits, target_a)
-                    loss = loss_cos * (1/(1+r_wass*r_wass) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass)
+                    loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                     
                     
                     

@@ -241,7 +241,6 @@ def main(config):
                     label = fs.make_nk_label(
                             n_way, n_query, ep_per_batch=4).cuda()
                     with torch.no_grad():
-
                         
                         # compute output
                         support =  x_shot
@@ -249,11 +248,11 @@ def main(config):
                         logits_KL,logits_cos,r_wass =  fs_model(support, query)
                         logits_KL = logits_KL.view(-1, n_way)
                         logits_cos = logits_cos.view(-1, n_way)
-                        logits = logits_cos* (1/(1+r_wass*r_wass) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass)
+                        logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
                         
-                        loss_cos = criterion(logits_cos, target)
-                        loss_KL = criterion(logits_KL, target)
-                        loss = loss_cos * (1/(1+r_wass*r_wass) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass)
+                        loss_cos = criterion(logits_cos, label)
+                        loss_KL = criterion(logits_KL, label)
+                        loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                         
                         acc = utils.compute_acc(logits, label)
 
