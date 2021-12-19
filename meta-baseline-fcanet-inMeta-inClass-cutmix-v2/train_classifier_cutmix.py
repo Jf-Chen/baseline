@@ -246,11 +246,17 @@ def main(config):
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits =  fs_model(support, query)
-                        logits = logits.view(-1, n_way)
-                        loss = criterion(logits, label)
-                        acc = utils.compute_acc(logits, label)
+                        logits_KL,logits_cos,r_wass =  fs_model(support, query)
+                        logits_KL = logits_KL.view(-1, n_way)
+                        logits_cos = logits_cos.view(-1, n_way)
+                        logits = logits_cos* (1/(1+r_wass*r_wass) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass)
                         
+                        loss_cos = criterion(logits_cos, target)
+                        loss_KL = criterion(logits_KL, target)
+                        loss = loss_cos * (1/(1+r_wass*r_wass) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass)
+                        
+                        acc = utils.compute_acc(logits, label)
+
                     aves['fsa-' + str(n_shot)].add(acc)
 
         # post

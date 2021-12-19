@@ -20,8 +20,10 @@ class MetaBaseline(nn.Module):
         self.neighbor_k = neighbor_k
         self.encoder_name = encoder
         # 初始化为0和1
-        self.r_dn4 = nn.Parameter(torch.ones(1),requires_grad=True)
-        self.r_cos = nn.Parameter(torch.ones(1),requires_grad=True)
+        device = torch.device('cuda:0') 
+        # self.r_dn4 = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
+        self.r_cos = nn.Parameter(torch.ones(1).to(device),requires_grad=True)
+        self.r_wass = nn.Parameter(torch.zeros(1).to(device),requires_grad=True)
         #--------------------------end-----------------------------#
 
         if temp_learnable:
@@ -81,7 +83,7 @@ class MetaBaseline(nn.Module):
             logits_cos , logits_dn4 = compute_dn4_cos_mix(x_shot_aft,x_query_aft,self.neighbor_k)
             # logits = self.r_cos * logits_cos + self.r_dn4 * logits_dn4 
             # logits = self.r_cos * logits_cos + (1-self.r_cos) * logits_dn4 
-            return logits_cos,logits_dn4,self.r_cos,self.r_dn4
+            return logits_cos,logits_dn4,self.r_cos
         #==================================================================#
         elif self.method == 'KLcos':
             
@@ -90,16 +92,88 @@ class MetaBaseline(nn.Module):
             # logits  = self.r_cos * logits_cos + (1-self.r_cos) * logits_KL
             return logits_KL,logits_cos,self.r_cos
             # return logits 
-        elif self.method == 'cos_my':
-            x_shot_mean = x_shot_pool.mean(dim=-2)
-            x_shot_F = F.normalize(x_shot_mean, dim=-1)
-            x_query_F = F.normalize(x_query_pool, dim=-1)
-            metric = 'dot'
-            logits = utils.compute_logits(
-                x_query_F, x_shot_F, metric=metric, temp=self.temp)
-            return logits,logits,self.r_cos
+        elif self.method =="WassCos":
+            logits_Wass,logits_cos = compute_Wass_cos(x_shot_aft,x_query_aft)
+            return logits_Wass,logits_cos,self.r_wass
         
-        return logits,self.r_dn4,self.r_cos
+        
+        return logits,logits,self.r_cos
+
+#========================== mix Wass & cos  ==========================#
+## 需要用到 def cal_covariance_matrix_Batch( feature): 
+## 和 def wasserstein_distance_raw_Batch( mean1, cov1, mean2, cov2):
+## 和 def support_remaining( S):
+def compute_Wass_cos(base,query):
+    ## 余弦相似度
+    base_mean=base.contiguous().view(base.shape[0], base.shape[1],base.shape[2],base.shape[3], -1).mean(dim=4)# [b,way,shot,c]
+    base_mean_proto=base_mean.mean(dim=2) # [b,way,c]
+    query_mean=query.contiguous().view(query.shape[0], query.shape[1], query.shape[2],-1).mean(dim=3)
+    # 加入正则化
+    logits_cos = torch.bmm(F.normalize(query_mean, dim=-1), F.normalize(base_mean_proto, dim=-1).permute(0, 2, 1))
+    
+    
+    ## Wass相似度
+    Similarity_list = []
+
+    b = query.size()[0]
+    q_num =query.size(1)
+    c = query.size(2)
+    h=query.size(3)
+    w= query.size(4)
+    way = base.size(1)
+    shot =base.size(2)
+    input1_batch = query.view(b,q_num,c,h*w)
+    input1_batch = input1_batch.permute(0,1,3,2)
+    
+    input2_batch = base.view(b,way*shot,c,h*w)
+    input2_batch = input2_batch.permute(0,1,3,2)
+    shot_num  = base.size()[2]
+    for i in range(b):
+        input1 = input1_batch[i] # [q_num,H*W,C]
+        input2 = input2_batch[i] # [shot*way,H*W,C]
+
+        # L2 Normalization
+        input1_norm = torch.norm(input1, 2, 2, True)
+        input2_norm = torch.norm(input2, 2, 2, True)
+
+        # Calculate the mean and covariance of the all the query images
+        query_mean, query_cov = cal_covariance_matrix_Batch(
+            input1) # [75, 1, 64] [75, 64, 64]
+
+        # Calculate the mean and covariance of the support set
+        support_set = input2.contiguous().view(-1,
+                                               shot * input2.size(1), input2.size(2))
+        # [5,5*441,C] [way,shot*HW,C]
+        s_mean, s_cov = cal_covariance_matrix_Batch(support_set) # [5, 1, 64] [5, 64, 64]
+
+        # Find the remaining support set
+        support_set_remain = support_remaining(support_set) # [5, 8820, 64] [way,(way-1)*shot*HW,C] [某类,去除该类*shot*HW,C]
+        s_remain_mean, s_remain_cov = cal_covariance_matrix_Batch(
+            support_set_remain) # [5, 1, 64] [5, 64, 64]
+        
+        # Calculate the Wasserstein Distance
+        was_dis = -wasserstein_distance_raw_Batch(query_mean, query_cov, s_mean, s_cov)
+
+        # Calculate the Image-to-Class Similarity
+        query_norm = input1 / input1_norm
+        support_norm = input2 / input2_norm
+        
+        was_dis_per=torch.unsqueeze(was_dis,0)
+        Similarity_list.append(was_dis_per)
+        
+    Similarity_list = torch.cat(Similarity_list, 0)
+    
+    return Similarity_list,logits_cos #[4,75,5]
+    
+def wasserstein_distance_raw_Batch( mean1, cov1, mean2, cov2):
+
+    mean_diff = mean1 - mean2.squeeze(1)
+    cov_diff = cov1.unsqueeze(1) - cov2
+    l2_norm_mean = torch.div(torch.norm(mean_diff, p=2, dim=2), mean1.size(2))
+    l2_norm_cova = torch.div(torch.norm(cov_diff, p=2, dim=(2, 3)), mean1.size(2) * mean1.size(2))
+
+    return l2_norm_mean + l2_norm_cova
+
 
 #========================== mix KL & cos  ==========================#
 def compute_KL_cos(base,query,neighbor_k):

@@ -247,7 +247,8 @@ def main(config):
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits =  fs_model(support, query)
+                        logits_Wass,logits_cos,r_cos =  fs_model(support, query)
+                        logits  = (1-r_cos)*logits_Wass + r_cos * logits_cos
                         logits = logits.view(-1, n_way)
                         loss = criterion(logits, label)
                         acc = utils.compute_acc(logits, label)
