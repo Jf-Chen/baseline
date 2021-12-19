@@ -84,17 +84,22 @@ def main(config):
             with torch.no_grad():
                 if not args.sauc:
                     #==========================================================================#
-                    logits_cos_unview,logits_dn4_unview,r_cos,r_dn4 =  model(x_shot, x_query)
-                    logits_cos = logits_cos_unview.view(-1, n_way)
-                    logits_dn4 = logits_dn4_unview.view(-1, n_way)
-                    logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
-
+                    #logits_KL,logits_cos,r_wass =  fs_model(support, query)
                     label = fs.make_nk_label(n_way, n_query,
                             ep_per_batch=ep_per_batch).cuda()
-                    loss_cos = F.cross_entropy(logits_cos, label)
-                    loss_dn4 = F.cross_entropy(logits_dn4, label)
-                    loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
+                            
+                    logits_KL,logits_cos,r_wass =  model(x_shot, x_query)
+                    logits_cos = logits_cos.view(-1, n_way)
+                    logits_KL = logits_KL.view(-1, n_way)
+                    logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
+                    
+                    logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
+                    loss_cos = criterion(logits_cos, label)
+                    loss_KL = criterion(logits_KL, label)
+                    loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                     acc = utils.compute_acc(logits, label)
+                    
+                    # loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
 
                     aves['vl'].add(loss.item(), len(data))
                     aves['va'].add(acc, len(data))

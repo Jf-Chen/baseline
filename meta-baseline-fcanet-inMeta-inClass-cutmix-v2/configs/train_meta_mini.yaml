@@ -9,7 +9,7 @@ model: meta-baseline-att
 model_args: 
     encoder: resnet12-wide-att
     encoder_args: {}
-    method: KLcos
+    method: WassCos
     neighbor_k: 5
 # load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
 load_encoder: ./save/classifier_mini_5_way_5_shot_mini/epoch-last.pth
@@ -31,5 +31,5 @@ visualize_datasets: True
 num_workers: 2
 pin_memory : false
 beta: 0.2
-cutmix_prob: 0.5
+cutmix_prob: 1.0
 #---------end---------#

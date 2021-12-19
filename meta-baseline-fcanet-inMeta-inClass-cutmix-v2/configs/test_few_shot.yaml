@@ -1,8 +1,9 @@
 dataset: mini-imagenet
 dataset_args: {split: test}
 
-load: ./save/meta_mini-imagenet-5shot_meta-baseline-att-resnet12-wide-att/epoch-last.pth
+#load: ./save/meta_mini-imagenet-5shot_meta-baseline-att-resnet12-wide-att/epoch-last.pth
 
+load: ./save/meta_mini_5_way_5_shot_mini/epoch-last.pth
 # Replace load with load_encoder for loading the encoder only (e.g. for testing Classifier-Baseline)
 
 #--------添加的-------#
