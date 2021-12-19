@@ -1,0 +1,10 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. 用cos+KL的均值作为唯一判别条件
+4. 加入cutmix
+5.
+
+
+其他计划
+ 3. 经过考虑，使用cos的度量方式，但加入KL loss（参考Few-shot Learning with Online Self-Distillation）作为约束
+

@@ -6,6 +6,7 @@ import models
 import utils
 from .models import register
 from .layer import MultiSpectralAttentionLayer
+
 import pdb
 
 @register('meta-baseline-att')
@@ -79,7 +80,7 @@ class MetaBaseline(nn.Module):
             x_shot = x_shot.mean(dim=-2)
             metric = 'sqr'
         
-        elif self.method ='dbrn_bias':
+        elif self.method =='dbrn_bias':
             b = x_shot_aft.size()[0];
             way = x_shot_aft.size()[1]
             shot  = x_shot_aft.size()[2]
@@ -88,7 +89,7 @@ class MetaBaseline(nn.Module):
             w = x_shot_aft.size()[5]
             support = x_shot_aft.view(b,way,shot,c,h*w)
             support  = support.permute(0,1,2,4,3) # [b,way,shot,h*w,c]
-            x_shot_mean = get_bias_proto(support) # [b,way,c]
+            x_shot_mean = get_bias_proto(support,h,w) # [b,way,c]
             x_shot_F = F.normalize(x_shot_mean, dim=-1)
             x_query_F = F.normalize(x_query_pool, dim=-1)
             metric = 'dot'
@@ -111,10 +112,12 @@ def get_bias_proto(support): # [b,way,shot,h*w,c] -> [b,way,c]
     Pe = support.mean(dim=2) # [b,way,h*w,c]
     
     Pe_w =  Pe.view(b*way,h*w,c)
-    sim = torch.nn.functional.cosine_similarity(Pe_w,Pe_w) # [b*way,h*w]
+    sim = torch.nn.functional.cosine_similarity(Pe_w,Pe_w,dim =-1) # [b*way,h*w]
+    # 求出来全是1 写的不对
     bias = sim.view(b,way,h*w)
     
-    bias_index  = np.argsort(-bias) # 降序的bias的index # (b,way,h*w)
+    bias_index  = torch.argsort(bias,descending=True) # 降序的bias的index # (b,way,h*w)
+    # torch.argsort
     
     # 整理,获得sim,每张support对伪Proto,每个块的相似度
     Pe_sq=torch.unsqueeze(Pe,dim = 2) # Pe_sq torch.Size([4, 5, 1, 25, 640]) 
@@ -146,7 +149,7 @@ def get_bias_proto(support): # [b,way,shot,h*w,c] -> [b,way,c]
                     max_index = torch.argmax(masked_sim, dim=0)
                     
                     mask[max_index] = 0
-                    support_new[i,j,k,block,:]= support_new[i,j,k,max_idnex,:] # 填充到block位置
+                    support_new[i,j,k,block,:]= support_new[i,j,k,max_index,:] # 填充到block位置
                     
     
     support_shot_mean = support_new.mean(dim=3)
