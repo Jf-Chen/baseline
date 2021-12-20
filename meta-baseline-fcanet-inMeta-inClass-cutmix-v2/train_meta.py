@@ -93,7 +93,7 @@ def main(config):
         tval_sampler = CategoriesSampler(
                 tval_dataset.label, 200,
                 n_way, n_shot + n_query,
-                ep_per_batch=4)
+                ep_per_batch=ep_per_batch)
         tval_loader = DataLoader(tval_dataset, batch_sampler=tval_sampler,
                                  num_workers=num_workers, pin_memory=pin_memory)
     else:
@@ -110,7 +110,7 @@ def main(config):
     val_sampler = CategoriesSampler(
             val_dataset.label, 200,
             n_way, n_shot + n_query,
-            ep_per_batch=4)
+            ep_per_batch=ep_per_batch)
     val_loader = DataLoader(val_dataset, batch_sampler=val_sampler,
                             num_workers=num_workers, pin_memory=pin_memory)
 
@@ -271,9 +271,9 @@ def main(config):
             for data, _ in tqdm(loader, desc=name, leave=False):
                 x_shot, x_query = fs.split_shot_query(
                         data.cuda(), n_way, n_shot, n_query,
-                        ep_per_batch=4)
+                        ep_per_batch=ep_per_batch)
                 label = fs.make_nk_label(n_way, n_query,
-                        ep_per_batch=4).cuda()
+                        ep_per_batch=ep_per_batch).cuda()
 
                 with torch.no_grad():
                     
@@ -287,7 +287,11 @@ def main(config):
                     logits_KL = logits_KL.view(-1, n_way)
                     logits_cos = logits_cos.view(-1, n_way)
                     logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
-                    acc = utils.compute_acc(logits, target_a)
+                    acc = utils.compute_acc(logits, target)
+                    
+                    loss_cos = criterion(logits_cos, target)
+                    loss_KL = criterion(logits_KL, target)
+                    
                     loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                     
                     

@@ -104,7 +104,7 @@ def main(config):
         for n_shot in n_shots:
             fs_sampler = CategoriesSampler(
                     fs_dataset.label, 200,
-                    n_way, n_shot + n_query, ep_per_batch=4)
+                    n_way, n_shot + n_query, ep_per_batch=ep_per_batch)
             fs_loader = DataLoader(fs_dataset, batch_sampler=fs_sampler,
                                    num_workers=num_workers, pin_memory=pin_memory)
             fs_loaders.append(fs_loader)
@@ -238,9 +238,9 @@ def main(config):
                 for data, _ in tqdm(fs_loaders[i],
                                     desc='fs-' + str(n_shot), leave=False):
                     x_shot, x_query = fs.split_shot_query(
-                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=4)
+                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=ep_per_batch)
                     label = fs.make_nk_label(
-                            n_way, n_query, ep_per_batch=4).cuda()
+                            n_way, n_query, ep_per_batch=ep_per_batch).cuda()
                     with torch.no_grad():
 
                         

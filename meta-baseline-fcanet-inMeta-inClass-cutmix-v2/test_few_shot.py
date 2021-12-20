@@ -75,6 +75,7 @@ def main(config):
     test_epochs = args.test_epochs
     np.random.seed(0)
     va_lst = []
+    criterion = nn.CrossEntropyLoss().cuda()
     for epoch in range(1, test_epochs + 1):
         for data, _ in tqdm(loader, leave=False):
             x_shot, x_query = fs.split_shot_query(
@@ -91,7 +92,7 @@ def main(config):
                     logits_KL,logits_cos,r_wass =  model(x_shot, x_query)
                     logits_cos = logits_cos.view(-1, n_way)
                     logits_KL = logits_KL.view(-1, n_way)
-                    logits = torch.mul(logits_cos,logits_dn4) # 只有这一步有些问题
+                    
                     
                     logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
                     loss_cos = criterion(logits_cos, label)
