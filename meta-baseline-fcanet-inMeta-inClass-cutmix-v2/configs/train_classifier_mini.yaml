@@ -31,4 +31,5 @@ fs_model_args:
     encoder_args: {}
     method: WassCos #KLcos
     neighbor_k: 5
+ep_per_batch: 4
 #---------end---------#
