@@ -8,8 +8,11 @@
 其他计划
  3. 经过考虑，使用cos的度量方式，但加入KL loss（参考Few-shot Learning with Online Self-Distillation）作为约束
 
+
+2021/12/20
 V2的问题在于，WassCos的r_wass不变化，一直是0。要解决这个问题
-其次，classifier的曲线非常不平滑，考虑使用adam；最奇怪的是，classifier的train/acc低于val/acc
+其次，classifier的曲线非常不平滑，考虑使用adam；
+最奇怪的是，classifier的train/acc低于val/acc，这种特征只在Meta_baseline_fcanet_inMeta_inClass.ipynb的前5个epoch上出现，并且差异很小（这个也许不是问题，最后解决）
 最后，meta阶段的acc是下降的。
 
 
