@@ -52,6 +52,10 @@ def main(config):
     cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
+    if config.get('ep_per_batch') is not None:
+        ep_per_batch = config['ep_per_batch']
+    else:
+        ep_per_batch = 1
     #---------end----------#
     
     #### Dataset ####
@@ -104,7 +108,7 @@ def main(config):
         for n_shot in n_shots:
             fs_sampler = CategoriesSampler(
                     fs_dataset.label, 200,
-                    n_way, n_shot + n_query, ep_per_batch=ep_per_batch)
+                    n_way, n_shot + n_query, ep_per_batch=ef_epoch)
             fs_loader = DataLoader(fs_dataset, batch_sampler=fs_sampler,
                                    num_workers=num_workers, pin_memory=pin_memory)
             fs_loaders.append(fs_loader)
