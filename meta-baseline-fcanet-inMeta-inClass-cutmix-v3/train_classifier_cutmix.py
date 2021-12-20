@@ -249,14 +249,19 @@ def main(config):
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits_KL,logits_cos,r_wass =  fs_model(support, query)
+                        logits_KL,logits_cos,r_wass,r_cos =  fs_model(support, query)
+                        
                         logits_KL = logits_KL.view(-1, n_way)
                         logits_cos = logits_cos.view(-1, n_way)
-                        logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
+                        
+                        
+                        
                         
                         loss_cos = criterion(logits_cos, label)
                         loss_KL = criterion(logits_KL, label)
-                        loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
+                        
+                        logits = logits_cos* torch.exp(r_cos)+logits_KL*torch.exp(r_wass)
+                        loss = loss_cos * torch.exp(r_cos) + loss_KL * torch.exp(r_wass)
                         
                         acc = utils.compute_acc(logits, label)
 

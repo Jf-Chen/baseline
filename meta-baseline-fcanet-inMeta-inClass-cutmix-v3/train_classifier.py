@@ -46,16 +46,12 @@ def main(config):
     pin_memory = True
     if config.get("pin_memory"):
         pin_memory=config['pin_memory']
-    beta = 0.2 # beta
+    beta = 1.0 # beta
     if config.get('beta'):
         beta = config['beta']
     cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
-    if config.get('ep_per_batch') is not None:
-        ep_per_batch = config['ep_per_batch']
-    else:
-        ep_per_batch = 1
     #---------end----------#
     
     #### Dataset ####
@@ -108,7 +104,7 @@ def main(config):
         for n_shot in n_shots:
             fs_sampler = CategoriesSampler(
                     fs_dataset.label, 200,
-                    n_way, n_shot + n_query, ep_per_batch=ef_epoch)
+                    n_way, n_shot + n_query, ep_per_batch=ep_per_batch)
             fs_loader = DataLoader(fs_dataset, batch_sampler=fs_sampler,
                                    num_workers=num_workers, pin_memory=pin_memory)
             fs_loaders.append(fs_loader)
@@ -177,6 +173,7 @@ def main(config):
             # data [128, 3, 80, 80] 
             # label [128]
             #==========================================
+            """
             r = np.random.rand(1)
             use_cut_mix = True
             if beta > 0 and r < cutmix_prob:
@@ -206,11 +203,11 @@ def main(config):
             logits = output
             acc = utils.compute_acc(logits, label)
             
-            
+            """
             ####  原版的
-            # logits = model(data)
-            # loss = F.cross_entropy(logits, label)
-            # acc = utils.compute_acc(logits, label)
+            logits = model(data)
+            loss = F.cross_entropy(logits, label)
+            acc = utils.compute_acc(logits, label)
 
             optimizer.zero_grad()
             loss.backward()
@@ -241,25 +238,24 @@ def main(config):
                 for data, _ in tqdm(fs_loaders[i],
                                     desc='fs-' + str(n_shot), leave=False):
                     x_shot, x_query = fs.split_shot_query(
-                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=ef_epoch)
+                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=ep_per_batch)
                     label = fs.make_nk_label(
-                            n_way, n_query, ep_per_batch=ef_epoch).cuda()
+                            n_way, n_query, ep_per_batch=ep_per_batch).cuda()
                     with torch.no_grad():
+
                         
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits_KL,logits_cos,r_wass =  fs_model(support, query)
-                        logits_KL = logits_KL.view(-1, n_way)
-                        logits_cos = logits_cos.view(-1, n_way)
-                        logits = logits_cos* (1/(1+r_wass*r_wass)) + logits_KL* (r_wass*r_wass/(1+r_wass*r_wass))
+                        logits_Wass,logits_cos,r_wass,r_cos =  fs_model(support, query) # 如果是WassCos的话
                         
-                        loss_cos = criterion(logits_cos, label)
-                        loss_KL = criterion(logits_KL, label)
-                        loss = loss_cos * (1/(1+r_wass*r_wass)) + loss_KL * (r_wass*r_wass/(1+r_wass*r_wass))
                         
+                        logits = logits_cos* torch.exp(r_cos)+logits_KL**torch.exp(r_wass)
+                        
+                        logits = logits.view(-1, n_way)
+                        loss = criterion(logits, label)
                         acc = utils.compute_acc(logits, label)
-
+                        
                     aves['fsa-' + str(n_shot)].add(acc)
 
         # post
