@@ -201,8 +201,7 @@ def main(config):
                 # adjust lambda to exactly match pixel ratio
                 lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
                 # compute output
-                logits =  model(support, query)
-                logits = logits.view(-1, n_train_way)                
+                logits =  model(support, query) 
                 loss = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
                 
                 acc = utils.compute_acc(logits, target)
