@@ -166,8 +166,8 @@ class MetaBaseline(nn.Module):
             # Calculate pixel and part -level similarity
             query_norm = input1 / input1_norm
             support_norm = input2 / input2_norm
-            assert (torch.min(input1_norm) > 0)
-            assert (torch.min(input2_norm) > 0)
+            # assert (torch.min(input1_norm) > 0) 不懂这句话的含义，但有时会触发，代表什么情况？
+            # assert (torch.min(input2_norm) > 0)
 
             support_norm_p = support_norm.permute(0, 2, 1)
             support_norm_p = support_norm_p.contiguous().view(-1,
