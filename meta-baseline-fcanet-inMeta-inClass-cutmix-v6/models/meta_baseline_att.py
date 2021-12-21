@@ -96,9 +96,8 @@ class MetaBaseline(nn.Module):
             Similarity_list, Q_S_List = self.cal_MML_similarity(input1_batch,input2_batch) # query,support
             
             # 还不知道输出尺寸
-            print(Similarity_list.size())
-            
-            print(type(Q_S_List))
+            #print(Similarity_list.size())
+            #print(type(Q_S_List))
             
             logits = Similarity_list # 
         
@@ -131,14 +130,17 @@ class MetaBaseline(nn.Module):
             
             # ================================================================# 
             ## 余弦相似度(好像和proto一样)
-            query = input1_norm 
-            base =  input2_norm.contiguous().view(-1,self.shot_num,) #[way,shot,dimension,h*w]
+            dimension = input2.size()[1]
+            HW = input2.size()[2]
+            query = input1/input1_norm 
+            
+            base =  (input2/input2_norm).contiguous().view(self.num_classes,self.shot_num,dimension,HW) #[way,shot,dimension,h*w]
             
             base_mean=base.mean(dim=3) # [way,shot,c]
             base_mean_proto=base_mean.mean(dim=1) # [way,c]
             query_mean=query.mean(dim=2) #[q_num,c]
             
-            logits_cos = torch.bmm(query_mean, base_mean_proto.permute(0, 1))
+            logits_cos = torch.mm(query_mean, base_mean_proto.permute(1, 0)) # bmm 3d, mm 2d
             
             # logits_cos [75, 5]
             
@@ -211,7 +213,7 @@ class MetaBaseline(nn.Module):
             """
         
         Similarity=torch.stack(Similarity_list) #[4,75,5]
-        return Similarity_list, Q_S_List
+        return Similarity, Q_S_List
 
     def wasserstein_distance_raw_Batch(self, mean1, cov1, mean2, cov2):
 
