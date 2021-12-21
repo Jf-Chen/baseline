@@ -1,0 +1,10 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+
+4. 加入cutmix
+5.
+
+经过思考，如果加入local相关的特征，则不足以发挥fcanet的作用，因此，度量方式采取简单的cos
+
+
+
