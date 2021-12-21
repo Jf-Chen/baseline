@@ -85,24 +85,14 @@ def main(config):
             with torch.no_grad():
                 if not args.sauc:
                     #==========================================================================#
-                    #logits_KL,logits_cos,r_wass =  fs_model(support, query)
+                    
                     label = fs.make_nk_label(n_way, n_query,
                             ep_per_batch=ep_per_batch).cuda()
                             
-                    logits_KL,logits_cos,r_wass,r_cos =  model(x_shot, x_query)
-                    logits_cos = logits_cos.view(-1, n_way)
-                    logits_KL = logits_KL.view(-1, n_way)
-                    
-                    
-                    
-                    loss_cos = criterion(logits_cos, label)
-                    loss_KL = criterion(logits_KL, label)
-                    
-                    
-                    
-                    # loss = 1/(2*r_cos*r_cos)*loss_cos + 1/(r_dn4*r_dn4)*loss_dn4+torch.log(r_cos)+torch.log(r_dn4)
-                    loss  = loss_cos * torch.exp(r_cos) +loss_KL*torch.exp(r_wass)
-                    logits = logits_cos* torch.exp(r_cos)+logits_KL*torch.exp(r_wass)
+                    logits =  model(x_shot, x_query)
+                    logits = logits.view(-1, n_way)
+
+                    loss = criterion(logits, label)
                     
                     acc = utils.compute_acc(logits, label)
 

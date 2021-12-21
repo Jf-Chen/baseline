@@ -75,6 +75,6 @@ class MetaBaseline(nn.Module):
 
         
         
-        return logits
+        return logits # [4,75,5]
 
 

@@ -85,6 +85,11 @@ class MetaBaseline(nn.Module):
             q_num=query_shape[1]
             way  = shot_shape[1]
             shot = shot_shape[2]
+            
+            self.batch_size = b
+            self.shot_num = shot
+            self.num_classes = way
+            
             input1_batch =  x_query_aft.contiguous().view(b*q_num,dimension,h*w)
             input2_batch = x_shot_aft.contiguous().view(b*shot*way,dimension,h*w) # [b,way,shot,c,h,w] -> [b*shot*way,dimension,h*w]
             
