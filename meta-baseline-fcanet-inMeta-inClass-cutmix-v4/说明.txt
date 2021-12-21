@@ -1,0 +1,23 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. 用cos+KL的均值作为唯一判别条件
+4. 加入cutmix
+5.
+
+
+其他计划
+ 3. 经过考虑，使用cos的度量方式，但加入KL loss（参考Few-shot Learning with Online Self-Distillation）作为约束
+
+
+2021/12/20
+V2的问题在于，WassCos的r_wass不变化，一直是0。要解决这个问题
+其次，classifier的曲线非常不平滑，考虑使用adam；
+最奇怪的是，classifier的train/acc低于val/acc，这种特征只在Meta_baseline_fcanet_inMeta_inClass.ipynb的前5个epoch上出现，并且差异很小（这个也许不是问题，最后解决）
+最后，meta阶段的acc是下降的。
+
+2021/12/21
+直接使用MML的混合度量方式
+We use the Adam [13] optimizer and the cross-entropy (CE) loss to train our MML. 
+Our batch size is set to 4, the initial learning rate is 0.001, and multiplied by 0.5 every 10 epochs.
+
+
