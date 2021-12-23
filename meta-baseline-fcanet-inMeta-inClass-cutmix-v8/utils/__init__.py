@@ -151,7 +151,7 @@ def make_optimizer(params, name, lr, beta1,step_size,gamma,scheduler_name,weight
         # optimizer = Adam(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
         optimizer = Adam(params, lr=lr, betas=(beta1, 0.9), eps=1e-08, weight_decay=0, amsgrad=False)
 
-    if scheduler_name ="StepLR":
+    if scheduler_name =="StepLR":
         lr_scheduler =torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
         print("scheduler is StepLR")
     else:

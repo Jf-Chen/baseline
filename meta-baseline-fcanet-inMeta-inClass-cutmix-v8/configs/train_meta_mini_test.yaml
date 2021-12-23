@@ -26,7 +26,7 @@ ep_per_batch: 1 # 受限于显存,奇怪的是 2 也不行,原来给出的是4
 max_epoch: 1
 optimizer: adam-stand
 # optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
-optimizer_args:{lr: 0.001, weight_decay: 5.e-4,milestones: [90],beta1:0.5,step_size:10,gamma:0.5,scheduler_name:"StepLR"}
+optimizer_args: {lr: 0.001, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 10,gamma: 0.5,scheduler_name: "StepLR"}
 
 visualize_datasets: True
 
