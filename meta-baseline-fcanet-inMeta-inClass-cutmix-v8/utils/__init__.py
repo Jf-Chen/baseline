@@ -140,7 +140,7 @@ def compute_n_params(model, return_str=True):
         return tot
 
 
-def make_optimizer(params, name, lr, weight_decay=None, milestones=None,beta1,step_size,gamma):
+def make_optimizer(params, name, lr, beta1,step_size,gamma,scheduler_name,weight_decay=None, milestones=None,):
     if weight_decay is None:
         weight_decay = 0.
     if name == 'sgd':

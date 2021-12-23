@@ -16,14 +16,7 @@ model_args:
 batch_size: 128
 max_epoch: 100 # 100
 optimizer:  adam-stand # adam-stand # sgd  
-optimizer_args: 
-    lr: 0.1, 
-    weight_decay: 5.e-4
-    milestones: [90]
-    beta1:0.5
-    step_size:10
-    gamma:0.5
-    scheduler_name:"StepLR"
+optimizer_args:{lr: 0.1, weight_decay: 5.e-4,milestones: [90],beta1:0.5,step_size:10,gamma:0.5,scheduler_name:"StepLR"}
     
 
 save_epoch: 5
