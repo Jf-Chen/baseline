@@ -1,0 +1,15 @@
+1. resnet12去除pooling，且linear加上fcanet作为encoder的一部分，classifier训练后保留fcanet
+2. meta-baseline中不加入att，直接使用带att的encoder
+3. 使用cos+我设计的spatial 作为loss
+4. 加入cutmix
+5.
+
+经过思考，如果加入local相关的特征，则不足以发挥fcanet的作用，因此，度量方式采取简单的cos、
+
+为了让模型复杂一些，吸收M2L的做法，用fusion层，融合cos和DN4
+
+
+
+最简单版本
+
+我设计的spatial

@@ -1,0 +1,4 @@
+本方法验证adam的作用
+使用adam作为optimizer，仅使用fcanet
+
+adam使用pytorch的默认参数
