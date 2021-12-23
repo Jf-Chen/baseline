@@ -210,7 +210,8 @@ def main(config):
             else:
                 # compute output
                 logits =  model(support, query) 
-                loss = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
+                logits = logits.view(-1,n_train_way)
+                loss = criterion(logits, target)
                 
                 acc = utils.compute_acc(logits, target)
 

@@ -46,12 +46,16 @@ def main(config):
     pin_memory = True
     if config.get("pin_memory"):
         pin_memory=config['pin_memory']
-    beta = 1.0 # beta
+    beta = 0.2 # beta
     if config.get('beta'):
         beta = config['beta']
     cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
+    if config.get('ep_per_batch') is not None:
+        ep_per_batch = config['ep_per_batch']
+    else:
+        ep_per_batch = 1
     #---------end----------#
     
     #### Dataset ####
