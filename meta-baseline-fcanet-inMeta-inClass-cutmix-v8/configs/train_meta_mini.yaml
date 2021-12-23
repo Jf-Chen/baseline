@@ -9,13 +9,13 @@ model: meta-baseline-att
 model_args:
     encoder: resnet12-wide-att
     encoder_args: {}
-    method: M2L_cos_dn4
+    method: cos
     neighbor_k: 5
     batch_size : 2
     shot_num : 5
     num_classes : 5
 # load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
-load_encoder: ./save/classifier_mini_cutmix/epoch-last.pth
+load_encoder: ./save/classifier_mini/epoch-last.pth
 
 n_way: 5
 n_shot: 5
@@ -24,8 +24,16 @@ train_batches: 200
 ep_per_batch: 1
 
 max_epoch: 80 # 20
-optimizer: sgd
-optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
+optimizer: adam-stand
+# optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
+optimizer_args:
+    lr: 0.001, 
+    weight_decay: 5.e-4
+    milestones: [90]
+    beta1:0.5
+    step_size:10
+    gamma:0.5
+    scheduler_name:"StepLR"
 
 visualize_datasets: True
 
@@ -34,5 +42,5 @@ visualize_datasets: True
 num_workers: 2
 pin_memory : false
 beta: 0.2
-cutmix_prob: 1.0
+cutmix_prob: -1
 #---------end---------#

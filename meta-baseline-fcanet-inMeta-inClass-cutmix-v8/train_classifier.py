@@ -217,7 +217,7 @@ def main(config):
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits =  fs_model(support, query) # 如果是WassCos的话
+                        logits =  fs_model(support, query) 
                         
                         logits = logits.view(-1, n_way)
                         loss = criterion(logits, label)

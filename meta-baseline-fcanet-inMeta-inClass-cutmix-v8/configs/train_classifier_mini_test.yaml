@@ -32,7 +32,7 @@ visualize_datasets: true
 num_workers: 2
 pin_memory : false
 beta: 0.2 # 这个不改
-cutmix_prob: 1.0 # 0.5 #试试全都mix # cutmix_prob=0.5 is used for CIFAR experiments, otherwise, we set cutmix_prob=1.0 including ImageNet experiments.
+cutmix_prob: -1 # 0.5 #小于0就不会mix了
 fs_model_args:
     encoder: resnet12-wide-att
     encoder_args: {}
