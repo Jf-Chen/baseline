@@ -71,10 +71,20 @@ print(cov2_inverse.size())
 
 
 
+print("input1_batch",input1_batch.size(),"input2_batch",input2_batch.size())
+input1_batch torch.Size([75, 640, 25]) input2_batch torch.Size([5, 640, 25])
 
+print("self.batch_size",self.batch_size,"self.shot_num",self.shot_num,"self.num_classes",self.num_classes)
+self.batch_size 1 self.shot_num 1 self.num_classes 5
 
+print("input1",input1.size(),"input2",input2.size())
+input1 torch.Size([75, 640, 25]) input2 torch.Size([5, 640, 25])
 
+print("input1_norm",input1_norm.size(),"input2_norm",input2_norm.size())
+input1_norm torch.Size([75, 640, 1]) input2_norm torch.Size([5, 640, 1])
 
+temp= input1/input1_norm 
+print(temp.size())
 
 
 

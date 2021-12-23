@@ -15,7 +15,7 @@ model_args:
     shot_num : 5
     num_classes : 5
 # load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
-load_encoder: ./save/classifier_mini/epoch-last.pth
+load_encoder: ./save/classifier_mini_none/epoch-last.pth
 
 n_way: 5
 n_shot: 5
