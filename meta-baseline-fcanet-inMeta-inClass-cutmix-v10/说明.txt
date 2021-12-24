@@ -1,0 +1,6 @@
+仅仅使用fcanet和cutmix，验证cutmix的作用
+
+adam使用参数不是默认的，而是修改过的，来自v8
+
+v10文件夹是从v9复制来的，只需要把config中的model_args: 的 method: cos改成match的
+

@@ -1,0 +1,41 @@
+train_dataset: mini-imagenet
+train_dataset_args: {split: train}
+tval_dataset: mini-imagenet
+tval_dataset_args: {split: test}
+val_dataset: mini-imagenet
+val_dataset_args: {split: val}
+
+model: meta-baseline-att
+model_args:
+    encoder: resnet12-wide-att
+    encoder_args: {}
+    method: M2L_cos_match
+    neighbor_k: 5
+    batch_size : 2
+    shot_num : 5
+    num_classes : 5
+load_encoder: ./save/classifier_mini-imagenet_resnet12/epoch-last.pth
+# load_encoder: ./save/classifier_mini_none/epoch-last.pth
+
+n_way: 5
+n_shot: 5
+n_query: 15
+train_batches: 200
+ep_per_batch: 1 # 受限于显存,奇怪的是 2 也不行,原来给出的是4
+
+max_epoch: 1
+optimizer: sgd
+# optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
+optimizer_args: {lr: 0.001, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 10,gamma: 0.5,scheduler_name: "MultiStepLR"}
+
+visualize_datasets: True
+
+
+#--------添加的-------#
+num_workers: 2
+pin_memory : false
+beta: 0.2
+cutmix_prob: -1
+#---------end---------#
+
+# 修改的部分 max_epoch: 1

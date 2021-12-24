@@ -1,0 +1,5 @@
+仅仅使用fcanet和cutmix，验证cutmix的作用
+
+adam使用参数不是默认的，而是修改过的，来自v8
+
+v9文件夹是从v8复制来的，只需要把config中的cutmix_prob改成1.0即可
