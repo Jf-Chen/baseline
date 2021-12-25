@@ -25,7 +25,7 @@ class MetaBaseline(nn.Module):
         fusion_num =2 
         if method == 'M2L_cos_dn4':
             fusion_num = 3
-        elif method  == 'M2L_cos_match'
+        elif method  == 'M2L_cos_match':
             fusion_num = 2
         
         self.Norm_layer = nn.BatchNorm1d(num_classes * fusion_num, affine=True) # 只用了pix level 的dn4和cos
