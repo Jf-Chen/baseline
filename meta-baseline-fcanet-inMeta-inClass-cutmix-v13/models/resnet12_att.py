@@ -111,7 +111,7 @@ class ResNet12(nn.Module):
         x = self.att4(x)
         # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         
-        x=self.att(x)
+        # x=self.att(x)
         
         return x
 
