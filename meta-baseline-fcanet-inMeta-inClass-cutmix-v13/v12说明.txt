@@ -1,0 +1,7 @@
+本方法验证match_sim的作用
+
+classifier使用sgd+fcanet inClass的，仅将meta阶段的method修改，使用fusion混合proto2query和query2proto的logits
+
+本文件复制自V8
+
+需要修改train_meta_mini.yaml的load_encoder,optimizer,optimizer_args
