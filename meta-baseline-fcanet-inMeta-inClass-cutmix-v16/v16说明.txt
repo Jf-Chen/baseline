@@ -1,0 +1,9 @@
+本方法验证loss相加是否起作用，将wass和cos的logits输出，loss相加，logits_cos用于分类。
+
+classifier使用sgd+fcanet inClass的，仅将meta阶段的method修改，使用fusion混合proto2query和query2proto的logits
+
+
+需要修改train_meta_mini.yaml的load_encoder,optimizer,optimizer_args
+
+
+动机：loss相加而logits不变。代码来自v12。修改v12，meta_baseline_att同时返回多个logit，只使用cos的logits用来分类，别的logits用来计算loss。loss采用乘以系数相加的形式。
