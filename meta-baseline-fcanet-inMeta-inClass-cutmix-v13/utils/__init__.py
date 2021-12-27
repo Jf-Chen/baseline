@@ -156,7 +156,7 @@ def make_optimizer(params, name, lr, beta1,step_size,gamma,scheduler_name,weight
         print("scheduler is StepLR")
     else:
         if milestones:
-            lr_scheduler = MultiStepLR(optimizer, milestones)
+            lr_scheduler = MultiStepLR(optimizer, milestones,gamma=gamma)
             print("scheduler is MultiStepLR")
         else:
             lr_scheduler = None
