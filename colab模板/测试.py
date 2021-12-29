@@ -1,4 +1,7 @@
+#************** 特别注意，是否是cutmix **********************#
+
 ## 测试通过后，将yamlfilename, current_time, yamlfilename, --test-epochs修改回来
+
 
 #===== 1 ============训练classifier=========================#
 # yamlfilename = "configs/train_%s_%s_test.yaml"%(stage,dataset)

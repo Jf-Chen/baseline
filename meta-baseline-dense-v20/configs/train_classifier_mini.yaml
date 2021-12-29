@@ -36,4 +36,5 @@ fs_model_args:
     shot_num : 5
     num_classes : 5
 ep_per_batch: 4
+fs_model_name: meta-baseline-dense
 #---------end---------#

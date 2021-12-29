@@ -56,6 +56,9 @@ def main(config):
         ep_per_batch = config['ep_per_batch']
     else:
         ep_per_batch = 1
+    fs_model_name = "meta-baseline-dense"
+    if config.get('fs_model_name') is not None:
+        fs_model_name = config['fs_model_name']
     #---------end----------#
     
     #### Dataset ####
@@ -127,7 +130,7 @@ def main(config):
 
     if eval_fs:
         # fs_model = models.make('meta-baseline', encoder=None)
-        fs_model = models.make('meta-baseline-att', **config['fs_model_args'])
+        fs_model = models.make(fs_model_name, **config['fs_model_args'])
         fs_model.encoder = model.encoder
 
     if config.get('_parallel'):
