@@ -102,6 +102,9 @@ class ResNet12(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
+        # 输出是 torch.Size([128, 640, 5, 5])
+        
+        # x torch.Size([128, 640, 5, 5])
         # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         
         # x=self.att(x)

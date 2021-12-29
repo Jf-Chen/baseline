@@ -182,7 +182,14 @@ def main(config):
             # label [128]
             
             ####  原版的
-            logits = model(data)
+            logits = model(data) # [128*5*5,64]
+            
+            
+            local_h=5
+            local_w = 5
+            labels.unsqueeze(dim=1).unsqueeze(dim=1).expand(-1, local_h, local_w) # [128,5,5]
+            labels = labels.reshape(-1) # [128*5*5]
+            
             loss = F.cross_entropy(logits, label)
             acc = utils.compute_acc(logits, label)
 
