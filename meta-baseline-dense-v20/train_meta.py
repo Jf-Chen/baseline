@@ -46,9 +46,6 @@ def main(config):
     cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
-    freeze_encoder = 0
-    if config.get('freeze_encoder'):
-        freeze_encoder = config['freeze_encoder']
     #---------end----------#
 
     #### Dataset ####
@@ -166,17 +163,6 @@ def main(config):
         if config.get('freeze_bn'):
             utils.freeze_bn(model) 
         writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
-        
-        if epoch <= freeze_encoder:
-            print(model.encoder)
-            for p in model.encoder.parameters():
-                p.requires_grad = False
-        else:
-            if epoch == (freeze_encoder+1):
-                print("since epoch ",epoch," not freeze")
-            
-            for p in model.encoder.parameters():
-                p.requires_grad = True
 
         np.random.seed(epoch)
         for data, _ in tqdm(train_loader, desc='train', leave=False):

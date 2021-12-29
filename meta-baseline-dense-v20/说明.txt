@@ -1,0 +1,3 @@
+本方法验证dense的作用
+
+使用简单的resnet，不使用fcanet，输出chw，classifier阶段FC使用两层的网络

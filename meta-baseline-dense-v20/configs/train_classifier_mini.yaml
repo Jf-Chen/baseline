@@ -1,0 +1,39 @@
+train_dataset: mini-imagenet
+train_dataset_args: {split: train, augment: resize}
+val_dataset: mini-imagenet
+val_dataset_args: {split: train_phase_val}
+fs_dataset: mini-imagenet
+fs_dataset_args: {split: test}
+eval_fs_epoch: 5
+
+model: classifier
+model_args:
+    encoder: resnet12-wide-dense
+    encoder_args: {}
+    classifier: dense-linear-classifier
+    classifier_args: {n_classes: 64}
+
+batch_size: 128
+max_epoch: 100 # 100
+optimizer:  sgd # adam-stand # sgd  
+optimizer_args: {lr: 0.1, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 20,gamma: 0.1,scheduler_name: "MultiStepLR"}
+    
+
+save_epoch: 5
+visualize_datasets: true
+
+#--------添加的-------#
+num_workers: 2
+pin_memory : false
+beta: 0.2 # 这个不改
+cutmix_prob: -1 # 0.5  # cutmix_prob=0.5 is used for CIFAR experiments, otherwise, we set cutmix_prob=1.0 including ImageNet experiments.
+fs_model_args:
+    encoder: resnet12-wide-dense
+    encoder_args: {}
+    method: cos
+    neighbor_k: 5
+    batch_size : 2
+    shot_num : 5
+    num_classes : 5
+ep_per_batch: 4
+#---------end---------#
