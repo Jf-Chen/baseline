@@ -184,14 +184,13 @@ def main(config):
             ####  原版的
             logits = model(data) # [128*5*5,64]
             
-            
-            local_h=5
-            local_w = 5
-            labels.unsqueeze(dim=1).unsqueeze(dim=1).expand(-1, local_h, local_w) # [128,5,5]
+            local_hw = int(logits.size()[0]/data.size()[0])
+
+            labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
             labels = labels.reshape(-1) # [128*5*5]
             
-            loss = F.cross_entropy(logits, label)
-            acc = utils.compute_acc(logits, label)
+            loss = F.cross_entropy(logits, labels)
+            acc = utils.compute_acc(logits, labels)
 
             optimizer.zero_grad()
             loss.backward()
@@ -208,9 +207,15 @@ def main(config):
             for data, label in tqdm(val_loader, desc='val', leave=False):
                 data, label = data.cuda(), label.cuda()
                 with torch.no_grad():
-                    logits = model(data)
-                    loss = F.cross_entropy(logits, label)
-                    acc = utils.compute_acc(logits, label)
+                    
+                    logits = model(data) # [128*5*5,64]
+                    local_hw = int(logits.size()[0]/data.size()[0])
+                    labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
+                    labels = labels.reshape(-1) # [128*5*5]
+                    loss = F.cross_entropy(logits, labels)
+                    
+                    
+                    acc = utils.compute_acc(logits, labels)
                 
                 aves['vl'].add(loss.item())
                 aves['va'].add(acc)
