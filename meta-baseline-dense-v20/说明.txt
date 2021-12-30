@@ -1,3 +1,5 @@
 本方法验证dense的作用
 
 使用简单的resnet，不使用fcanet，输出chw，classifier阶段FC使用两层的网络
+
+这种local级别标签的classifier，容易损失全局信息，我的想法是同时训练两个loss，甚至三个loss，patch level的loss

@@ -16,7 +16,8 @@ model_args:
 batch_size: 128
 max_epoch: 100 # 100
 optimizer:  sgd # adam-stand # sgd  
-optimizer_args: {lr: 0.1, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 20,gamma: 0.1,scheduler_name: "MultiStepLR"}
+optimizer_args: {lr: 0.1, weight_decay: 5.e-4,milestones:  [50,80],beta1: 0.5,step_size: 20,gamma: 0.1,scheduler_name: "MultiStepLR"}
+# 观察train_acc,lr应该在50就缩小
     
 
 save_epoch: 5
