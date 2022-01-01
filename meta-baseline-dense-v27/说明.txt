@@ -1,0 +1,12 @@
+本方法验证调整原型排序的作用
+
+pretrain: 使用v20已经训练好的
+使用简单的resnet，不使用fcanet，输出chw，classifier阶段FC使用两层的网络（未使用）
+
+这种local级别标签的classifier，容易损失全局信息，
+
+
+meta改进：
+
+对query和spport的proto做匹配，也就是在形成proto的过程中，按照匹配形成proto.
+也就是先对一个shot中的[hw]排序，再平均，构建proto

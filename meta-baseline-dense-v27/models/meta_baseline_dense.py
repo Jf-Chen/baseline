@@ -81,7 +81,7 @@ class MetaBaseline(nn.Module):
             logits = utils.compute_logits(
                 x_query_F, x_shot_F, metric=metric, temp=self.temp)
         
-        elif self.method == "dense_match":
+        elif self.method == "sort_match":
             b = query_shape[0]
             q_num=query_shape[1]
             way  = shot_shape[1]
@@ -94,10 +94,91 @@ class MetaBaseline(nn.Module):
             input1 =  x_query_aft.contiguous().permute(0,1,3,4,2) # [b,q_num,c,h,w]->[b,q_num,h,w,c]
             input2 = x_shot_aft.contiguous().permute(0,1,2,4,5,3)# [4,5,1,640,5,5]->[4,5,1,5,5,640] [b,way,shot,c,h,w] -> [b*shot*way,h*w,dimension]
             
-            Similarity,Q_S_List = self.dense_match_similarity(input1 ,input2,self.neighbor_k)# query,support
+            Similarity,Q_S_List = self.sort_proto_match_similarity(input1 ,input2,self.neighbor_k)# query,support
             logits = Similarity
+
         
         return logits # [batch,q_num,way,]
+        
+#=================================  sort_match  ==================================#
+    def sort_proto_match_similarity(self,input1,input2,neighbor_k): # 仅调整proto
+        # input1 [b,q_num,h,w,dimension]
+        # input2 [b,way,shot,h,w,dimension]
+        
+        Similarity_list = []
+        Q_S_List = []
+        
+        b,q_num,h,w,c = input1.size()
+        _,way,shot,_,_,_ = input2.size()
+        
+        input1_batch = input1.contiguous().view(b, q_num,h*w,c )
+        input2_batch = input2.contiguous().view(b,way*shot,h*w,c)
+        #  input1_batch  [b,q_num,h*w,dimension]
+        #  input2_batch  [b,way*shot,h*w,dimension]
+        
+        for i in range(b):
+            input1 = input1_batch[i] # [q_num,h*w,dimension]
+            input2 = input2_batch[i] # [way*shot,h*w,dimension]
+
+            # L2 Normalization
+            input1_norm = torch.norm(input1, 2, 2, True)
+            input2_norm = torch.norm(input2, 2, 2, True)
+            
+            input1_after_norm=input1/input1_norm
+            input2_after_norm=input2/input2_norm
+            
+            query = input1_after_norm.contiguous().view(q_num,h,w,c)
+            support = input2_after_norm.contiguous().view(way,shot,h,w,c)
+            
+            support_set= support.contiguous().view(way,shot,h*w,c)
+            query_set= query.contiguous().view(q_num,h*w,c)
+            
+            # 一定要是在每个shot中，对hw排序，整合成query的样子
+            query_ex =  query_set.unsqueeze(1).unsqueeze(1).expand(-1,way,shot,-1,-1)# [q_num,way,shot,h*w,c]
+            support_ex = support_set.unsqueeze(0).expand(q_num,-1,-1,-1,-1) #[q_num,way,shot,h*w,c]
+            
+            query_view= =query_ex.contiguous().view(q_num*way*shot,h*w,c)
+            support_view = support_ex.contiguous().view(q_num*way*shot,h*w,c)
+            
+            
+            
+            innerproduct = torch.bmm(query_view,support_view.permute(0,2,1)) #[q_num*way*shot,h*w,h*w]
+            
+            # innerproduct_shot  = innerproduct.contiguous().view(q_num,way,shot,h*w,h*w) # query的hw对某个shot的hw的相似度
+            
+            sim_shot =  self.resort_shot(self,innerproduct) #[q_num*way*shot,h*w]
+            sim = torch.sum(sim_query,dim=1) 
+            sim_query = sim.contiguous().view(q_num,way,shot)
+            sim_way = torch.sum(sim_query,dim=2)/shot 
+            
+            
+            Similarity_list.append(sim_way)
+            
+        Similarity=torch.stack(Similarity_list) #[4,75,5]
+        return Similarity,Q_S_List
+            
+            
+            
+            
+    def resort_shot(self,innerproduct):
+        # innerproduct_shot [q_num*way*shot,h*w,h*w]
+        qws= innerproduct.size()[0]
+        hw = innerproduct.size()[2]
+        
+        value,index  = torch.sort(innerproduct,dim=2,descending=True) # 
+        sim_matrix = torch.zeros(qws,1)
+        result = torch.zeros(qws,hw)
+        for i in range(qws):
+            sim = innerproduct[i] #[hw,hw]
+            for j in range(hw): # query中找出相似度最高的，优先挑选
+                value_shot,index_shot = torch.max(sim_matrix,dim=1) #[hw],[hw]
+                value_query,index_query= torch.max(value_shot,dim=0) #[1],[1]
+                result[i,index_query] = value_query
+                index_used = index_shot[index_query] # shot的该区域已经被用过了
+                innerproduct[:,index_used]= -1000
+        
+        return result
+        
         
 #=================================  dense_match  ==================================#
     def dense_match_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim

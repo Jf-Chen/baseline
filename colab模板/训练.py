@@ -89,20 +89,6 @@ print("current_time==",current_time)
 os.chdir(root)
 
 
-#=================用epoch-last测试meta=========================#
-tag="5_way_5_shot_mini"
-filename= "test_few_shot.py"
-yamlfilename = "configs/test_few_shot.yaml"
-
-os.chdir(root)
-os.chmod(filename,0o777)
-!python $filename --shot 5 --test-epochs 10   #========================================================================= 5 ======================================================#
-# !python $filename --shot 5 --test-epochs 1
-
-os.chdir(root)
-os.chmod(filename,0o777)
-!python $filename --shot 1 --test-epochs 10   #========================================================================= 5 ======================================================#
-# !python $filename --shot 1 --test-epochs 1
 
 # 压缩
 # /content/baseline/meta-baseline-fcanet-inMeta-inClass-bsnet-weight/save/meta_mini-imagenet-5shot_meta-baseline-att-resnet12-wide-att
@@ -128,6 +114,24 @@ shutil.copy("%s"%(tar_gz_name),current_stage_dir_drive)
 # shutil.copy(os.path.join(root,'train_meta.py'),current_stage_dir_drive)
 print("%s 保存位置："%tar_gz_name, current_stage_dir_drive)
 # 注意是小写的meta-baseline
+
+
+
+#=================用epoch-last测试meta=========================#
+tag="5_way_5_shot_mini"
+filename= "test_few_shot.py"
+yamlfilename = "configs/test_few_shot.yaml"
+
+os.chdir(root)
+os.chmod(filename,0o777)
+!python $filename --shot 5 --test-epochs 10   #========================================================================= 5 ======================================================#
+# !python $filename --shot 5 --test-epochs 1
+
+os.chdir(root)
+os.chmod(filename,0o777)
+!python $filename --shot 1 --test-epochs 10   #========================================================================= 5 ======================================================#
+# !python $filename --shot 1 --test-epochs 1
+
 
 # 最后结束运行
 # !kill -9 -1 # 该代码不能结束会话，只能重启

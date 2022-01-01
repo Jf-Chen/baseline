@@ -9,7 +9,7 @@ model: meta-baseline-dense
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    method: dense_match
+    method: sort_match
     neighbor_k: 5
     batch_size : 2
     shot_num : 5
@@ -21,13 +21,12 @@ n_way: 5
 n_shot: 5
 n_query: 15
 train_batches: 200
-ep_per_batch: 2
+ep_per_batch: 1 # 受限于显存,奇怪的是 2 也不行,原来给出的是4
 
-max_epoch: 40 # 20
+max_epoch: 1
 optimizer: sgd
+# optimizer_args: {lr: 0.001, weight_decay: 5.e-4}
 optimizer_args: {lr: 0.001, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 10,gamma: 0.5,scheduler_name: "MultiStepLR"}
-# optimizer_args: {lr: 0.01, weight_decay: 5.e-4,milestones:  [],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "StepLR"}
-# 考虑到classifier用的是0.01,这里最好也从0.01开始，然后缩小到0.001
 
 visualize_datasets: True
 
@@ -38,3 +37,5 @@ pin_memory : false
 beta: 0.2
 cutmix_prob: -1
 #---------end---------#
+
+# 修改的部分 max_epoch: 1
