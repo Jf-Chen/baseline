@@ -147,7 +147,7 @@ class MetaBaseline(nn.Module):
             # innerproduct_shot  = innerproduct.contiguous().view(q_num,way,shot,h*w,h*w) # query的hw对某个shot的hw的相似度
             
             sim_shot =  self.resort_shot(self,innerproduct) #[q_num*way*shot,h*w]
-            sim = torch.sum(sim_query,dim=1) 
+            sim = torch.sum(sim_shot,dim=1) 
             sim_query = sim.contiguous().view(q_num,way,shot)
             sim_way = torch.sum(sim_query,dim=2)/shot 
             
@@ -160,24 +160,44 @@ class MetaBaseline(nn.Module):
             
             
             
-    def resort_shot(self,innerproduct):
+    def resort_shot(innerproduct):
         # innerproduct_shot [q_num*way*shot,h*w,h*w]
         qws= innerproduct.size()[0]
         hw = innerproduct.size()[2]
         
         value,index  = torch.sort(innerproduct,dim=2,descending=True) # 
-        sim_matrix = torch.zeros(qws,1)
-        result = torch.zeros(qws,hw)
+        sim_matrix = torch.zeros(qws,1).cuda()
+        result = torch.zeros(qws,hw).cuda()
         for i in range(qws):
             sim = innerproduct[i] #[hw,hw]
-            for j in range(hw): # query中找出相似度最高的，优先挑选
-                value_shot,index_shot = torch.max(sim_matrix,dim=1) #[hw],[hw]
+            for j in range(hw): # shot每个部位和query相似度最高的程度
+                value_shot,index_shot = torch.max(sim,dim=0) #[hw],[hw] 
                 value_query,index_query= torch.max(value_shot,dim=0) #[1],[1]
                 result[i,index_query] = value_query
                 index_used = index_shot[index_query] # shot的该区域已经被用过了
-                innerproduct[:,index_used]= -1000
+                sim[:,index_used]= -1000
         
         return result
+        # 由于循环时间很长，保留了一份test的，耗时约2h
+        # epoch 1, train 0.6312|0.8921, tval 0.9116|0.6807, val 0.9085|0.6934, 1.2h 1.2h/1.2h (@0)
+        # current_time== 0Y-0M-0D-0H-0Minu
+        
+        #====== ====== ======  不用循环的做法  ====== ====== # 
+        #  innerproduct [q_num*way*shot,h*w,h*w]、
+        for i in range(hw):
+            value_shot,index_shot = torch.max(innerproduct,dim=2) #[q_num*way*shot,h*w]
+            value_query,index_query= torch.max(value_shot,dim=1) #[q_num*way*shot],[q_num*way*shot]
+            result[:,i]=value_query #?
+            index_used = index_shot[index_query] #? 
+        
+        value_shot,index_shot = torch.max(innerproduct,dim=2) #[q_num*way*shot,h*w]
+        value_query,index_query= torch.max(value_shot,dim=1) #[q_num*way*shot],[q_num*way*shot]
+        result = torch.zeros(qws,hw).cuda()
+        result[:,index_query] = value_query
+        index_used = index_shot[index_query]
+        innerproduct[:,index_used] = -1000
+        
+        
         
         
 #=================================  dense_match  ==================================#
