@@ -94,11 +94,74 @@ class MetaBaseline(nn.Module):
             input1 =  x_query_aft.contiguous().permute(0,1,3,4,2) # [b,q_num,c,h,w]->[b,q_num,h,w,c]
             input2 = x_shot_aft.contiguous().permute(0,1,2,4,5,3)# [4,5,1,640,5,5]->[4,5,1,5,5,640] [b,way,shot,c,h,w] -> [b*shot*way,h*w,dimension]
             
-            Similarity,Q_S_List = self.dense_match_similarity(input1 ,input2,self.neighbor_k)# query,support
+            Similarity,Q_S_List = self.dense_query_only_similarity(input1 ,input2,self.neighbor_k)# query,support
             logits = Similarity
         
         return logits # [batch,q_num,way,]
         
+#=================================  只调整query  ==================================#
+    def dense_query_only_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
+        # 经过校准，输入必须是 dim在最后一维
+        # input1 [b,q_num,h,w,dimension]
+        # input2 [b,shot,way,h,w,dimension]
+        
+        Similarity_list = []
+        Q_S_List = []
+        
+        b,q_num,h,w,c = input1.size()
+        _,way,shot,_,_,_ = input2.size()
+        
+        input1_batch = input1.contiguous().view(b, q_num,h*w,c )
+        input2_batch = input2.contiguous().view(b,way*shot,h*w,c)
+        #  input1_batch  [b,q_num,h*w,dimension]
+        #  input2_batch  [b,way*shot,h*w,dimension]
+        
+        for i in range(b):
+            input1 = input1_batch[i] # [q_num,h*w,dimension]
+            input2 = input2_batch[i] # [way*shot,h*w,dimension]
+
+            # L2 Normalization
+            input1_norm = torch.norm(input1, 2, 2, True)
+            input2_norm = torch.norm(input2, 2, 2, True)
+            
+            input1_after_norm=input1/input1_norm
+            input2_after_norm=input2/input2_norm
+            
+            query = input1_after_norm.contiguous().view(q_num,h,w,c)
+            support = input2_after_norm.contiguous().view(way,shot,h,w,c)
+            
+            support_set= support.contiguous().view(way,shot*h*w,c)
+            query_set= query.contiguous().view(q_num,h*w,c)
+            
+            # ================ 计算query的自相关，调整权重 =====================#
+            query_inner_matrix = torch.bmm(query_set,query_set.permute(0,2,1))#[q_num,h*w,h*w]
+            query_sum = query_inner_matrix.sum(dim=2) #[q_num,h*w]
+            query_sum_all = query_sum.sum(dim=1)
+            query_sum_all_sq = query_sum_all.unsqueeze(dim=1)#[q_num,1]
+            query_weight = (h*w)*query_sum/query_sum_all_sq #[q_num,h*w]
+            
+            query_after_weight = torch.mul(query_weight.unsqueeze(dim=2),query_set)
+            query_pool = query_after_weight.sum(dim=1) #[q_num,c]
+            
+            proto_pool = support_set.sum(dim=1)/shot # [way,c]
+            sim = torch.mm(query_pool,proto_pool.permute(1,0)) # [query,way] 
+            Similarity_list.append(sim)
+            
+            
+            
+            
+            
+            
+        Similarity=torch.stack(Similarity_list) #[4,75,5]
+        
+        # 这里在test时返回了[4,75,1],有点问题
+        
+        
+        return Similarity,Q_S_List
+            
+        
+
+
 #=================================  dense_match  ==================================#
     def dense_match_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
         # 经过校准，输入必须是 dim在最后一维
@@ -142,13 +205,13 @@ class MetaBaseline(nn.Module):
             support_sum_all_sq= support_sum_all .unsqueeze(dim=1) #[way,1]
             support_weight = support_sum / support_sum_all_sq #[way,shot*h*w]
             
-            support_set_proto = torch.bmm(support_weight.squeeze(dim=2) ,support_set) # [way,shot*h*w,c]
+            support_set_proto = torch.mul(support_weight.unsqueeze(dim=2) ,support_set) # [way,shot*h*w,c]
             proto_pool = support_set_proto.sum(dim=1)/shot # [way,c]
             
             # 计算query
             # 先不算，看看成果
             query_pool = query_set.sum(dim=1)
-            sim = torch.bmm(query_pool,proto_pool.permute(1,0)) # [query,way] 
+            sim = torch.mm(query_pool,proto_pool.permute(1,0)) # [query,way] 
             Similarity_list.append(sim)
             
             
