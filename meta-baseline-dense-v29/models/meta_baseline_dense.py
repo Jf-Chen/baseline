@@ -60,10 +60,10 @@ class MetaBaseline(nn.Module):
         # x_query = x_query.view(*query_shape, dimension,h ,w)
         
         #------------------
-        x_shot_att=self.att(x_shot)
-        x_query_att=self.att(x_query)
-        # x_shot_att=x_shot
-        # x_query_att=x_query
+        #x_shot_att=self.att(x_shot)
+        # x_query_att=self.att(x_query)
+        x_shot_att=x_shot
+        x_query_att=x_query
         
         x_shot_aft = x_shot_att.view(*shot_shape,dimension,h ,w) # [4,5,1,640,5,5]
         x_query_aft = x_query_att.view(*query_shape, dimension,h ,w) # [b,q_num,c,h,w]
@@ -102,7 +102,7 @@ class MetaBaseline(nn.Module):
             input1 =  x_query_aft.contiguous().permute(0,1,3,4,2) # [b,q_num,c,h,w]->[b,q_num,h,w,c]
             input2 = x_shot_aft.contiguous().permute(0,1,2,4,5,3)# [4,5,1,640,5,5]->[4,5,1,5,5,640] [b,way,shot,c,h,w] -> [b*shot*way,h*w,dimension]
             
-            Similarity,Q_S_List = self.dense_both_hyper_plus_similarity(input1 ,input2,self.neighbor_k)# query,support
+            Similarity,Q_S_List = self.dense_query_only_based_on_support_similarity(input1 ,input2,self.neighbor_k)# query,support
             logits = Similarity
         
         return logits # [batch,q_num,way,]
@@ -456,6 +456,111 @@ class MetaBaseline(nn.Module):
         return Similarity,Q_S_List
         
         
+#===============================  只调整query ,但是依据support 来调整的 ================================#
+    def dense_query_only_based_on_support_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
+        # 经过校准，输入必须是 dim在最后一维
+        # input1 [b,q_num,h,w,dimension]
+        # input2 [b,shot,way,h,w,dimension]
+        neighbor_k = 1
+        
+        
+        Similarity_list = []
+        Q_S_List = []
+        
+        b,q_num,h,w,c = input1.size()
+        _,way,shot,_,_,_ = input2.size()
+        
+        input1_batch = input1.contiguous().view(b, q_num,h*w,c )
+        input2_batch = input2.contiguous().view(b,way*shot,h*w,c)
+        #  input1_batch  [b,q_num,h*w,dimension]
+        #  input2_batch  [b,way*shot,h*w,dimension]
+        
+        for i in range(b):
+            input1 = input1_batch[i] # [q_num,h*w,dimension]
+            input2 = input2_batch[i] # [way*shot,h*w,dimension]
+
+            # L2 Normalization
+            input1_norm = torch.norm(input1, 2, 2, True)
+            input2_norm = torch.norm(input2, 2, 2, True)
+            
+            input1_after_norm=input1/input1_norm
+            input2_after_norm=input2/input2_norm
+            
+            query = input1_after_norm.contiguous().view(q_num,h,w,c)
+            support = input2_after_norm.contiguous().view(way,shot,h,w,c)
+            
+            support_set= support.contiguous().view(way,shot*h*w,c)
+            query_set= query.contiguous().view(q_num,h*w,c)
+            
+            # ======== 计算query每个local和support set的相关性，我甚至可以取top5,作为对DN4的致敬 ========#
+            # 计算query
+            # 以support 为基准
+            # 要得到[q_num,way,h*w,shot*h*w]
+            query_sq = query_set.unsqueeze(dim=1).expand(-1,way,-1,-1).contiguous().view(q_num*way,h*w,c)
+            support_sq =  support_set.unsqueeze(dim=0).expand(q_num,-1,-1,-1).contiguous().view(q_num*way,shot*h*w,c)
+            inter_matrix = torch.bmm(query_sq,support_sq.permute(0,2,1)) # [q_num*way,h*w,shot*h*w]
+            
+            # ======超参
+            inter_matrix =  torch.pow(inter_matrix,neighbor_k)
+            
+            inter_sum =  inter_matrix.sum(dim= 2) # [q_num*way,h*w]
+            inter_sum_all = inter_sum.sum(dim=1).unsqueeze(dim=1) # [q_num*way,1]
+            query_weight = (h*w)* inter_sum / inter_sum_all # [q_num*way,h*w]
+            query_weight_view = query_weight.contiguous().view(q_num,way,h*w)
+            
+            # ======正则化
+            query_weight_norm = torch.norm(query_weight_view,p=2,dim=2,keepdim=True)
+            query_weight_view = query_weight_view/query_weight_norm
+            
+            sim = torch.zeros(q_num,way).cuda()
+            
+            support_ori_pool = support_set.mean(dim=1) #[way,c]
+            query_ori_pool = query_set.mean(dim=1) #[q_num,c]
+            
+            proto_pool =  support_set.mean(dim=1) #[way,c]
+            for j in range(way):
+                query_way_weight =  query_weight_view[:,j,:].contiguous().view(q_num,h*w)
+                query_way = torch.mul(query_set.contiguous().view(q_num*h*w,c),
+                                query_way_weight.contiguous().view(q_num*h*w).unsqueeze(dim=1)
+                                ).contiguous().view(q_num,h*w,c) #[q_num,h*w,c]
+                query_way_pool = query_way.sum(dim=1) #[q_num,c]
+                proto_way = proto_pool[j,:] #[c]
+                sim_way = torch.mm(query_way_pool,proto_way.unsqueeze(dim=1)).view(q_num) # [q_num]
+                sim[:,j]= sim_way
+            
+            Similarity_list.append(sim)
+            
+            """
+            for j in range(way):
+                query_way_weight =  query_weight_view[:,j,:].contiguous().view(q_num,h*w)
+                query_way = torch.mul(query_set.contiguous().view(q_num*h*w,c),
+                                query_way_weight.contiguous().view(q_num*h*w).unsqueeze(dim=1)
+                                ).contiguous().view(q_num,h*w,c) #[q_num,h*w,c]
+                query_way_pool = query_way.sum(dim=1) #[q_num,c]
+                proto_way = proto_pool[j,:] #[c]
+                
+                query_cat = torch.cat((query_way_pool,query_ori_pool),dim=1)
+                proto_cat = torch.cat((proto_way,support_ori_pool[j,:]),dim=0)
+                
+                # ====== 加上原版的prototype 和 query
+                sim_way = torch.mm(query_cat,proto_cat.unsqueeze(dim=1)).view(q_num) 
+                
+                
+                # sim_way = torch.mm(query_way_pool,proto_way.unsqueeze(dim=1)).view(q_num) # [q_num]
+                sim[:,j]= sim_way
+            
+            Similarity_list.append(sim)
+            """
+            
+            
+            
+            
+        Similarity=torch.stack(Similarity_list) #[4,75,5]
+        
+        # 这里在test时返回了[4,75,1],有点问题
+        
+        
+        return Similarity,Q_S_List
 #=================================  只调整query  ==================================#
     def dense_query_only_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
         # 经过校准，输入必须是 dim在最后一维
