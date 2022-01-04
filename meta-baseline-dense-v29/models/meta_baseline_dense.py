@@ -34,7 +34,11 @@ class MetaBaseline(nn.Module):
         c2wh = dict([(64,42),(160,21),(320,10),(640,5)])
         planes=640 # 插在哪一层后面就是多少维
         self.att = MultiSpectralAttentionLayer(channel = planes, dct_h=c2wh[planes], dct_w=c2wh[planes],  reduction=reduction, freq_sel_method = freq_sel_method)
-
+        
+        # self.linear =  nn.linear((1+shot_num),1) # 也就是，必须输入正确的shot_num
+        # 那么在使用1-shot进行测试时呢？
+        
+        
         #--------------------------end-----------------------------#
 
         if temp_learnable:

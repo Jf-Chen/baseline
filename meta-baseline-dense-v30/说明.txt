@@ -1,0 +1,12 @@
+本方法验证dense的作用
+
+使用简单的resnet，不使用fcanet，输出chw，classifier阶段FC使用两层的网络（未使用）
+
+这种local级别标签的classifier，容易损失全局信息，
+
+我的想法是同时训练两个loss，甚至三个loss，patch level的loss
+
+比如resnet输出chw，经过一个单层linear，得到label和loss；同时经过gap，经过linear，得到label和loss。两个loss相加，反向传播，训练rensnet.
+
+meta改进：
+对query和spport的local做匹配，
