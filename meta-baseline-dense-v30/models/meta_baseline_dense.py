@@ -145,14 +145,19 @@ class MetaBaseline(nn.Module):
             support_set= support.contiguous().view(way,shot*h*w,c)
             query_set= query.contiguous().view(q_num,h*w,c)
             
+            sim = torch.zeros(q_num,way).cuda()
             # 每个local找出最接近的25个local，用这25个作为weight,然后挑选出最重要的25个local
             k = shot*neighbor_k
-            for i in range(way):
-                support_curr_set =  support_set[i,:,:] #[shot*h*w,c]
+            for j in range(way):
+                support_curr_set =  support_set[j,:,:] #[shot*h*w,c]
                 support_inner = torch.mm(support_curr_set,support_curr_set.permute(1,0)) #[shot*h*w,shot*h*w]
-                top_value,top_index = torch.topk(support_inner,dim=1,k) #[shot*h*w,k],[shot*h*w,k]
+                # 去掉和自身的相关
+                diag =  torch.diag(support_inner)
+                support_inner = support_inner -  diag
+                
+                top_value,top_index = torch.topk(support_inner,k=k,dim=1) #[shot*h*w,k],[shot*h*w,k]
                 value_sum = torch.sum(top_value,dim=1) #[shot*h*w]
-                top_value,top_index = torch.topk(value_sum,dim=0,k) # [k],[k]
+                top_value,top_index = torch.topk(value_sum,k=k,dim=0) # [k],[k]
                 
                 support_used = support_curr_set[top_index] #[k,c]
                 
@@ -168,13 +173,23 @@ class MetaBaseline(nn.Module):
                 query_view = query_set.contiguous().view(q_num*h*w,c)
                 
                 query_weighted = torch.mul(query_view,weight_view) # [q_num*h*w,c]
-                query_way = query_weight.contiguous().view(q_num,h*w,c)
+                # 超参，加权求和
+                gamma = 0.5
+                query_plus = (1-gamma)*query_view + gamma* query_weighted
+                
+                query_way = query_plus.contiguous().view(q_num,h*w,c)
                 
                 # 计算query和当前way的相似度
-                proto_pool = support_curr_set.mean(dim=0) # [c]
-                query_pool = query_way.mean(dim=1) # [q_num,c]
+                # proto_pool = support_curr_set.mean(dim=0) # [c]
+                # query_pool = query_way.mean(dim=1) # [q_num,c]
+                # sim_way = torch.mm(query_pool,proto_pool.unsqueeze(dim=1)).view(q_num) # [q_num]
                 
-                sim_way = torch.mm(query_pool,proto_pool.unsqueeze(dim=1)).view(q_num) # [q_num]
+                # 假如带上hw计算相似度
+                proto_hw = support_curr_set.contiguous().view(shot,h*w*c).mean(dim=0) # [h*w*c]
+                query_hw =  query_way.contiguous().view(q_num,h*w*c) # [q_num,h*w*c]
+                sim_way =  torch.mm(query_hw,proto_hw.unsqueeze(dim=1)).view(q_num)
+                
+                
                 sim[:,j]= sim_way
                 
             Similarity_list.append(sim)
