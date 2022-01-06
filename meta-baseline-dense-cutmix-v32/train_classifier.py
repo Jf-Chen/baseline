@@ -17,75 +17,6 @@ import utils.few_shot as fs
 from datasets.samplers import CategoriesSampler
 
 
-def pretrain_dense(data,label,model):
-    logits = model(data) # [128*5*5,64]
-    local_hw = int(logits.size()[0]/data.size()[0])
-    labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
-    labels = labels.reshape(-1) # [128*5*5]
-    loss = F.cross_entropy(logits, labels)
-    acc = utils.compute_acc(logits, labels)
-    
-    return logits,loss,acc
-
-def pretrain_dense_cutmix(data,label,cutmix_prob,beta,model,criterion):
-    # data, label = data.cuda(), label.cuda()
-    # data [128, 3, 80, 80] 
-    # label [128]
-    #==========================================
-    r = np.random.rand(1)
-    use_cut_mix = True
-    if beta > 0 and r < cutmix_prob:
-        # generate mixed sample
-        lam = np.random.beta(beta, beta)
-        rand_index = torch.randperm(data.size()[0]).cuda()
-        target_a = label # [128]
-        target_b = label[rand_index]
-        bbx1, bby1, bbx2, bby2 = utils.rand_bbox(data.size(), lam)
-        data[:, :, bbx1:bbx2, bby1:bby2] = data[rand_index, :, bbx1:bbx2, bby1:bby2]
-        # adjust lambda to exactly match pixel ratio
-        lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (data.size()[-1] * data.size()[-2]))
-        
-        # ==== dense 写法
-        output = model(data) # [128*5*5,64]
-        local_hw = int(output.size()[0]/data.size()[0])# [25]
-        
-        # 正样本
-        label = target_a # [128]
-        labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
-        target_a = labels.reshape(-1) # [128*5*5]
-        
-        # 负样本
-        label = target_b
-        labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
-        target_b = labels.reshape(-1) # [128*5*5]
-        
-        
-        
-        # 这里为什么没有维度不匹配？criterion(output, target_b)
-        loss = criterion(output, target_a) * lam + criterion(output, target_b) * (1. - lam)
-        use_cut_mix = True
-        
-        acc = utils.compute_acc(output, target_a)
-        logits = output
-    else:
-        ####  原版的
-        output = model(data) # [128*5*5,64]
-        
-        local_hw = int(output.size()[0]/data.size()[0])
-
-        labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
-        labels = labels.reshape(-1) # [128*5*5]
-        
-        loss = F.cross_entropy(output, labels)
-        acc = utils.compute_acc(output, labels)
-        logits = output
-        use_cut_mix = False
-
-    
-    
-    return logits,loss,acc,
-
-
 def main(config):
     #---添加的部分参数-----#
     
@@ -125,8 +56,8 @@ def main(config):
         ep_per_batch = config['ep_per_batch']
     else:
         ep_per_batch = 1
-    fs_model_name = 'meta-baseline-dense'
-    if config.get('fs_model_name'):
+    fs_model_name = "meta-baseline-dense"
+    if config.get('fs_model_name') is not None:
         fs_model_name = config['fs_model_name']
     #---------end----------#
     
@@ -180,7 +111,7 @@ def main(config):
         for n_shot in n_shots:
             fs_sampler = CategoriesSampler(
                     fs_dataset.label, 200,
-                    n_way, n_shot + n_query, ep_per_batch=ef_epoch)
+                    n_way, n_shot + n_query, ep_per_batch=ep_per_batch)
             fs_loader = DataLoader(fs_dataset, batch_sampler=fs_sampler,
                                    num_workers=num_workers, pin_memory=pin_memory)
             fs_loaders.append(fs_loader)
@@ -212,6 +143,7 @@ def main(config):
     optimizer, lr_scheduler = utils.make_optimizer(
             model.parameters(),
             config['optimizer'], **config['optimizer_args'])
+    # 效仿MML,optimizer设为adam,Sets the learning rate to the initial LR decayed by 2 every 10 epoches"
 
     ########
     
@@ -246,8 +178,20 @@ def main(config):
         criterion = nn.CrossEntropyLoss().cuda()
         for data, label in tqdm(train_loader, desc='train', leave=False):
             data, label = data.cuda(), label.cuda()
-            logits,loss,acc, = pretrain_dense_cutmix(data,label,cutmix_prob,beta,model,criterion)
+            # data [128, 3, 80, 80] 
+            # label [128]
             
+            ####  原版的
+            logits = model(data) # [128*5*5,64]
+            
+            local_hw = int(logits.size()[0]/data.size()[0])
+
+            labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
+            labels = labels.reshape(-1) # [128*5*5]
+            
+            loss = F.cross_entropy(logits, labels)
+            acc = utils.compute_acc(logits, labels)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -263,7 +207,15 @@ def main(config):
             for data, label in tqdm(val_loader, desc='val', leave=False):
                 data, label = data.cuda(), label.cuda()
                 with torch.no_grad():
-                    logits,loss,acc = pretrain_dense(data,label,model)
+                    
+                    logits = model(data) # [128*5*5,64]
+                    local_hw = int(logits.size()[0]/data.size()[0])
+                    labels = label.unsqueeze(dim=1).expand(-1, local_hw) # [128,5*5]
+                    labels = labels.reshape(-1) # [128*5*5]
+                    loss = F.cross_entropy(logits, labels)
+                    
+                    
+                    acc = utils.compute_acc(logits, labels)
                 
                 aves['vl'].add(loss.item())
                 aves['va'].add(acc)
@@ -275,20 +227,21 @@ def main(config):
                 for data, _ in tqdm(fs_loaders[i],
                                     desc='fs-' + str(n_shot), leave=False):
                     x_shot, x_query = fs.split_shot_query(
-                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=ef_epoch)
+                            data.cuda(), n_way, n_shot, n_query, ep_per_batch=ep_per_batch)
                     label = fs.make_nk_label(
-                            n_way, n_query, ep_per_batch=ef_epoch).cuda()
+                            n_way, n_query, ep_per_batch=ep_per_batch).cuda()
                     with torch.no_grad():
+
                         
                         # compute output
                         support =  x_shot
                         query =  x_query
-                        logits  =  fs_model(support, query)
+                        logits =  fs_model(support, query) 
                         
                         logits = logits.view(-1, n_way)
-                        loss  = criterion(logits, label)
+                        loss = criterion(logits, label)
                         acc = utils.compute_acc(logits, label)
-
+                        
                     aves['fsa-' + str(n_shot)].add(acc)
 
         # post
