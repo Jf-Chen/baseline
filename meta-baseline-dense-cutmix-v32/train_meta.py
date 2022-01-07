@@ -152,9 +152,20 @@ def main(config):
     trlog = dict()
     for k in aves_keys:
         trlog[k] = []
+        
+    
+    # ====== 除了冻结encoder的前四层 =======# 
+    ct=0
+    for child in model.encoder.children():
+        ct+=1
+        if ct<5:
+            for params in child.parameters():
+                params.requires_grad =  False
 
     criterion = nn.CrossEntropyLoss().cuda()
     for epoch in range(1, max_epoch + 1):
+        
+        
         timer_epoch.s()
         aves = {k: utils.Averager() for k in aves_keys}
 

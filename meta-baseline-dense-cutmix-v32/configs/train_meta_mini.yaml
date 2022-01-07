@@ -25,8 +25,8 @@ ep_per_batch: 2
 
 max_epoch: 20 # 20
 optimizer: sgd
-# optimizer_args: {lr: 0.001, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 10,gamma: 0.5,scheduler_name: "MultiStepLR"}
-optimizer_args: {lr: 0.01, weight_decay: 5.e-4,milestones:  [],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "StepLR"}
+optimizer_args: {lr: 0.001, weight_decay: 5.e-4,milestones:  [90],beta1: 0.5,step_size: 10,gamma: 0.5,scheduler_name: "MultiStepLR"}
+# optimizer_args: {lr: 0.01, weight_decay: 5.e-4,milestones:  [],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "StepLR"}
 # 考虑到classifier用的是0.01,这里最好也从0.01开始，然后缩小到0.001
 
 visualize_datasets: True

@@ -7,6 +7,7 @@ import models
 import utils
 from .models import register
 import pdb
+from .spactial import SpatialGate
 
 
 @register('classifier')

@@ -113,6 +113,11 @@ class MetaBaseline(nn.Module):
         
         return logits # [batch,q_num,way,]
         
+
+#============ 试试用dense下的DN4,信心来自closer look at , ================#
+
+
+        
 #============ 试试用support补全query图像，计算相似度 ================#
     def linear_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
         lamda = 0.5
@@ -149,15 +154,15 @@ class MetaBaseline(nn.Module):
             
             for j in range(way):
                 support_way = support[j,:,:,:] # [shot,h,w,c]
-                sim_shot = torch.zeros(q_num,shot).cuda()
+                sim_way = torch.zeros(q_num,shot).cuda()
                 for k in range(shot):
                     support_image = support_way[k,:,:,:].view(h*w,c) # [h,w,c]->[h*w,c]
                     query_image =  query.contiguous().view(q_num,h*w,c) # [q_num,h*w,c]
                     support_image_ex = support_image.unsqueeze(dim=0).expand(q_num,h*w,c) # [q_num,h*w,c]
                     inter_matrix = torch.bmm(query_image,support_image_ex.permute(0,2,1)) #[q_num,h*w,h*w]
                     inter_soft =  torch.nn.Softmax(inter_matrix, dim=2)
-                    extra_query = torch.bmm(inter_soft,support_image_ex.permute(0,2,1))
-                    query_mix = extra_query*lamda + query*(1-lamda)
+                    extra_query = torch.bmm(inter_soft,support_image_ex)
+                    query_mix = extra_query*lamda + query_image*(1-lamda)
                     
                     query_pool = query_mix.mean(dim=1) # [q_num,c]
                     support_pool = support_image_ex.mean(dim=1) # [q_num,c]

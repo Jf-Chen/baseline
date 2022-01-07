@@ -2,6 +2,7 @@ import torch.nn as nn
 
 from .models import register
 from .layer import MultiSpectralAttentionLayer
+from .spactial import SpatialGate
 
 
 def conv3x3(in_planes, out_planes):
@@ -67,6 +68,7 @@ class ResNet12(nn.Module):
         self.layer2 = self._make_layer(channels[1])
         self.layer3 = self._make_layer(channels[2])
         self.layer4 = self._make_layer(channels[3])
+        self.spactial_att = SpatialGate()
 
         #====================================
         reduction = 16
@@ -76,7 +78,7 @@ class ResNet12(nn.Module):
         
         # self.att = MultiSpectralAttentionLayer(channel = planes, dct_h=c2wh[planes], dct_w=c2wh[planes],  reduction=reduction, freq_sel_method = freq_sel_method)
         #====================================
-
+        
 
         self.out_dim = [channels[3],c2wh[channels[3]],c2wh[channels[3]] ] # 640,5,5
 
@@ -108,6 +110,13 @@ class ResNet12(nn.Module):
         # x = x.view(x.shape[0], x.shape[1], -1).mean(dim=2)
         
         # x=self.att(x)
+        
+        x = self.spactial_att(x)
+        
+        print("x_after_att",x.size())
+        import pdb
+        pdb.set_trace()
+        
         
         return x
 
