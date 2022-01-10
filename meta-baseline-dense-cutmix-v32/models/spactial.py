@@ -33,5 +33,5 @@ class SpatialGate(nn.Module):
     def forward(self, x): # x按照[b,channel,h,w]排布
         x_compress = self.compress(x)
         x_out = self.spatial(x_compress) # kernel =1 时,输出[b,1,h,w]
-        scale = F.sigmoid(x_out) # broadcasting
+        scale = torch.special.expit(x_out) # broadcasting
         return x * scale
