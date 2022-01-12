@@ -177,56 +177,34 @@ def main(config):
                     param.requires_grad = True
 
         np.random.seed(epoch)
+        
+        # train dataset: torch.Size([3, 80, 80]) (x38400), 64
+        # tval dataset: torch.Size([3, 80, 80]) (x12000), 20
+        # val dataset: torch.Size([3, 80, 80]) (x9600), 16
+        
+        # classifier得到的[64]作为一种新的特征，观察support set下，这种特征是否按照类别聚集。
+        # 也就是 [20,5,5,64] ,每个类计算出一个中心，[20,64]，统计每个类到最近的中心是同一类的数量
+        
+        
+        features = [64,600,5,5,64]
+        class_index = torch.zeros([64])
         for data, _ in tqdm(train_loader, desc='train', leave=False):
-            # 在这里插入样本扩增
-            x_shot, x_query = fs.split_shot_query(
-                    data.cuda(), n_train_way, n_train_shot, n_query,
-                    ep_per_batch=ep_per_batch)
-            label = fs.make_nk_label(n_train_way, n_query,
-                    ep_per_batch=ep_per_batch).cuda()
-
-            # ====元学习如何使用cutmix，应该是support不变，而query变 ======
-            # ==== cutmix源码是按照[num,c,h,w]组织input的,而这里的query,support是按照[batch,num,c,h,w]组织的
-            query = x_query # query torch.Size([2, 75, 3, 80, 80])
-            support = x_shot
-            target = label # [150]
-            r = np.random.rand(1)
-            if beta > 0 and r < cutmix_prob:
-                # generate mixed sample
-                lam = np.random.beta(beta, beta)
-                q_num = query.size()[1]
-                b_num = query.size()[0]
+            data, label = data.cuda(), label.cuda()
+            # data [128, 3, 80, 80] 
+            # label [128]
+            
+            # model是原版classifier的model,
+            logits = model(data) # [128*5*5,64]
+            
+            vec =  logits.contiguous().view(128,5,5,64).
+            # 按照标签放到一起
+            for i in label:
+                curr_label = i
+                curr_index = class_index[i]
+                class_index[i] = class_index[i]+1
                 
-                # ==== 按照[q_num,c,h,w]组织，排列完之后再还原成[b,q_num,c,h,w] ==== #
-                # 简化一些，同样的batch的rand_index也相同
-                rand_index = torch.randperm(q_num).cuda()
-                
-                target_a = target
-                target_view = target.reshape(b_num,q_num)
-                target_b = target_view[:,rand_index].reshape(b_num*q_num) # [150]
-                
-                wish_query_size = [b_num*q_num,query.size()[2],query.size()[3],query.size()[4]]
-                bbx1, bby1, bbx2, bby2 = utils.rand_bbox(wish_query_size, lam)
-                
-                query[ :, :, :, bbx1:bbx2, bby1:bby2] = query[ :, rand_index, :, bbx1:bbx2, bby1:bby2]
-
-                # adjust lambda to exactly match pixel ratio
-                lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (query.size()[-1] * query.size()[-2]))
-                # compute output
-                logits =  model(support, query) 
-                logits = logits.view(-1,n_train_way)
-                loss = criterion(logits, target_a) * lam + criterion(logits, target_b) * (1. - lam)
-                
-                acc = utils.compute_acc(logits, target)
-                
-            else:
-                # compute output
-                logits =  model(support, query) 
-                logits = logits.view(-1,n_train_way)
-                loss = criterion(logits, target)
-                
-                acc = utils.compute_acc(logits, target)
-
+            
+            
             #=============================================================================#
 
 

@@ -6,4 +6,5 @@ from . import classifier
 from . import meta_baseline_dense
 from . import resnet12_dense
 from . import attention
+from . import non_local
 

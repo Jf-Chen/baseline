@@ -9,7 +9,9 @@ model: meta-baseline-dense
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    method: cos # dense_match
+    attention: non-local
+    attention_args: {}
+    method: dense_match # dense_match
     neighbor_k: 5
     batch_size : 2
     shot_num : 5
@@ -23,9 +25,9 @@ n_query: 15
 train_batches: 200
 ep_per_batch: 2
 
-max_epoch: 30 # 20
+max_epoch: 50 # 20
 optimizer: sgd
-optimizer_args: {lr: 0.1, weight_decay: 5.e-4,milestones:  [5,10],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "MultiStepLR"}
+optimizer_args: {lr: 0.1, weight_decay: 5.e-4,milestones:  [10,20],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "MultiStepLR"}
 # optimizer_args: {lr: 0.01, weight_decay: 5.e-4,milestones:  [],beta1: 0.5,step_size: 10,gamma: 0.1,scheduler_name: "StepLR"}
 # 考虑到classifier用的是0.01,这里最好也从0.01开始，然后缩小到0.001
 
@@ -38,4 +40,5 @@ pin_memory : false
 beta: 0.2
 cutmix_prob: -1
 save_epoch: 1
+freeze_epoch: 20
 #---------end---------#

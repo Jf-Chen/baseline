@@ -13,10 +13,12 @@ from models.attention import AttentionSimilarity
 class MetaBaseline(nn.Module):
 
     def __init__(self, encoder, encoder_args={},temp=10., temp_learnable=True,
+                    attention,attention_args={},
                     method='M2L_cos_dn4', neighbor_k=5, batch_size = 2, shot_num = 5, num_classes =5):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
         self.method = method
+        self.attention = models.make(attention, **attention_args)
         #----------------------------------------------------------#
         self.neighbor_k = neighbor_k
         self.batch_size = batch_size
@@ -57,6 +59,9 @@ class MetaBaseline(nn.Module):
         x_shot = x_shot.view(-1, *img_shape)
         x_query = x_query.view(-1, *img_shape)
         x_tot = self.encoder(torch.cat([x_shot, x_query], dim=0)) # [320, 640, 5, 5]
+        #----------------------------------------------------------#
+        x_tot =self.attention(x_tot)
+        
         x_shot, x_query = x_tot[:len(x_shot)], x_tot[-len(x_query):]
         
         dimension=x_tot.size()[1] # 也许是512
@@ -114,7 +119,42 @@ class MetaBaseline(nn.Module):
         
         return logits # [batch,q_num,way,]
         
+
+#============ 借助预训练的linear，作为额外的损失  ================#
+    def dense_classifier_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
+        # 经过校准，输入必须是 dim在最后一维
+        # input1 [b,q_num,h,w,dimension]
+        # input2 [b,shot,way,h,w,dimension]
         
+        Similarity_list = []
+        Q_S_List = []
+        
+        b,q_num,h,w,c = input1.size()
+        _,way,shot,_,_,_ = input2.size()
+        
+        input1_batch = input1.contiguous().view(b, q_num,h*w,c )
+        input2_batch = input2.contiguous().view(b,way*shot,h*w,c)
+        #  input1_batch  [b,q_num,h*w,dimension]
+        #  input2_batch  [b,way*shot,h*w,dimension]
+        
+        for i in range(b):
+            input1 = input1_batch[i] # [q_num,h*w,dimension]
+            input2 = input2_batch[i] # [way*shot,h*w,dimension]
+
+            # L2 Normalization
+            input1_norm = torch.norm(input1, 2, 2, True)
+            input2_norm = torch.norm(input2, 2, 2, True)
+            
+            input1_after_norm=input1/input1_norm
+            input2_after_norm=input2/input2_norm
+            
+            query = input1_after_norm.contiguous().view(q_num,h,w,c)
+            support = input2_after_norm.contiguous().view(way,shot,h,w,c)
+            
+            sim = torch.zeros(q_num,way).cuda()
+            
+
+
         
 #============ support挑选出 top5, query基于support最重要的特征加权 ,no 超参-》求和-》norm  ================#
     def dense_SCL_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
