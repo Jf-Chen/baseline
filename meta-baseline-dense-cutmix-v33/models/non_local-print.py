@@ -67,41 +67,41 @@ class _NonLocalBlockND(nn.Module):
         :param return_nl_map: if True return z, nl_map, else only return z.
         :return:
         """
-        # print("x",x.size())# [2, 640, 5, 5]
+        print("x",x.size())# [2, 640, 5, 5]
         
         batch_size = x.size(0) 
 
         g_x = self.g(x).view(batch_size, self.inter_channels, -1) # [2, 320, 4]
-        # print("g_x",g_x.size()) 
+        print("g_x",g_x.size()) 
         
         g_x = g_x.permute(0, 2, 1)# [2,4, 320]
 
         theta_x = self.theta(x).view(batch_size, self.inter_channels, -1)
-        # print("theta(x)",self.theta(x).size()) # [2, 320, 5, 5]
-        # print("theta_x",theta_x.size()) # [2, 320, 25]
+        print("theta(x)",self.theta(x).size()) # [2, 320, 5, 5]
+        print("theta_x",theta_x.size()) # [2, 320, 25]
         theta_x = theta_x.permute(0, 2, 1) # [2, 25, 320]
-        # print("theta_x",theta_x.size()) 
+        print("theta_x",theta_x.size()) 
         
-        # print("x",x.size())
-        # print("phi(x)",self.phi(x).size()) # [2, 320, 5, 5]
+        print("x",x.size())
+        print("phi(x)",self.phi(x).size()) # [2, 320, 5, 5]
         phi_x = self.phi(x).view(batch_size, self.inter_channels, -1) # [2, 320, 25]
         
-        # print("phi_x",phi_x.size())
+        print("phi_x",phi_x.size())
         f = torch.matmul(theta_x, phi_x)
-        # print("f",f.size()) # [2, 25, 25]
+        print("f",f.size()) # [2, 25, 25]
         N = f.size(-1)
         f_div_C = f / N
 
         y = torch.matmul(f_div_C, g_x)
-        # print("y",y.size()) # [2, 25, 320]
+        print("y",y.size()) # [2, 25, 320]
         y = y.permute(0, 2, 1).contiguous()
-        # print("y",y.size()) # [2, 320, 25]
+        print("y",y.size()) # [2, 320, 25]
         y = y.view(batch_size, self.inter_channels, *x.size()[2:])
-        # print("y",y.size()) # [2, 320, 5, 5]
+        print("y",y.size()) # [2, 320, 5, 5]
         W_y = self.W(y) 
-        # print("W_y",W_y.size()) # [2, 640, 5, 5]
+        print("W_y",W_y.size()) # [2, 640, 5, 5]
         z = W_y + x
-        # print("z",z.size()) # [2, 640, 5, 5]
+        print("z",z.size()) # [2, 640, 5, 5]
 
         if return_nl_map:
             return z, f_div_C

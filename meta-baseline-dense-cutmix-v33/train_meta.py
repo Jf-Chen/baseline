@@ -129,6 +129,8 @@ def main(config):
         if config.get('load_encoder'):
             encoder = models.load(torch.load(config['load_encoder'])).encoder
             model.encoder.load_state_dict(encoder.state_dict())
+            attention = models.load(torch.load(config['load_encoder'])).attention
+            model.attention.load_state_dict(attention.state_dict())
 
     if config.get('_parallel'):
         model = nn.DataParallel(model)

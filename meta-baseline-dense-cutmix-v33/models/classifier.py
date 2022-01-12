@@ -13,6 +13,7 @@ import pdb
 class Classifier(nn.Module):
     
     def __init__(self, encoder, encoder_args,
+                    attention,attention_args
                  classifier, classifier_args):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)

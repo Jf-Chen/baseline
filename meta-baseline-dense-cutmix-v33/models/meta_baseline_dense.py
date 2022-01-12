@@ -13,7 +13,7 @@ from models.attention import AttentionSimilarity
 class MetaBaseline(nn.Module):
 
     def __init__(self, encoder, encoder_args={},temp=10., temp_learnable=True,
-                    attention,attention_args={},
+                    attention='non-local',attention_args={},
                     method='M2L_cos_dn4', neighbor_k=5, batch_size = 2, shot_num = 5, num_classes =5):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
@@ -41,7 +41,7 @@ class MetaBaseline(nn.Module):
         # self.linear =  nn.linear((1+shot_num),1) # 也就是，必须输入正确的shot_num
         # 那么在使用1-shot进行测试时呢？
         #--------------------------集成SCL的attention-----------------------------#
-        self.attention = AttentionSimilarity(hidden_size=640, inner_size=80, aggregation="sum")
+        # self.attention = AttentionSimilarity(hidden_size=640, inner_size=80, aggregation="sum")
         # 可以试试max
         
         #--------------------------end-----------------------------#
