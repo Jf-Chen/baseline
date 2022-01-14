@@ -9,9 +9,7 @@ model: meta-baseline-dense
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    attention: non-local
-    attention_args: {}
-    method: cos # dense_match
+    method: dense_match
     neighbor_k: 5
     batch_size : 2
     shot_num : 5
@@ -38,7 +36,6 @@ num_workers: 2
 pin_memory : false
 beta: 0.2
 cutmix_prob: -1
-freeze_epoch: 20
 #---------end---------#
 
 # 修改的部分 max_epoch: 1

@@ -1,0 +1,3 @@
+meta-baseline-dense-cutmix-v35
+
+验证dense网络下，cutmix的作用

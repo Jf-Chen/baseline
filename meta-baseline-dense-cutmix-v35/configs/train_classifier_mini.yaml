@@ -10,8 +10,6 @@ model: classifier
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    attention: non-local
-    attention_args: {}
     classifier: dense-linear-classifier
     classifier_args: {n_classes: 64}
 
@@ -29,12 +27,10 @@ visualize_datasets: true
 num_workers: 2
 pin_memory : false
 beta: 0.2 # 这个不改
-cutmix_prob: 0.5 # 0.5  # cutmix_prob=0.5 is used for CIFAR experiments, otherwise, we set cutmix_prob=1.0 including ImageNet experiments.
+cutmix_prob: 1 # 0.5  # cutmix_prob=0.5 is used for CIFAR experiments, otherwise, we set cutmix_prob=1.0 including ImageNet experiments.
 fs_model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    attention: non-local
-    attention_args: {}
     method: cos
     neighbor_k: 5
     batch_size : 2

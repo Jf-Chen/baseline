@@ -13,17 +13,14 @@ import pdb
 class Classifier(nn.Module):
     
     def __init__(self, encoder, encoder_args,
-                    attention,attention_args,
-                 classifier,classifier_args):
+                 classifier, classifier_args):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
-        self.attention = models.make(attention,**attention_args)
         classifier_args['in_dim'] = self.encoder.out_dim
         self.classifier = models.make(classifier, **classifier_args)
 
     def forward(self, x):
         x = self.encoder(x) # [128,3,84,84]->[128,640,5,5]
-        x =  self.attention(x)
         x = self.classifier(x) # [128,640,5,5]->[128,1,5,5]
         return x
 
