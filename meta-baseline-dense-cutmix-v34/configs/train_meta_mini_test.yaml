@@ -10,7 +10,7 @@ model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
     method: dense_match
-    neighbor_k: 5
+    neighbor_k: 0.1
     batch_size : 2
     shot_num : 5
     num_classes : 5

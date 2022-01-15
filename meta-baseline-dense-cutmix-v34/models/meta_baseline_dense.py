@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 
 import models
@@ -39,6 +40,24 @@ class MetaBaseline(nn.Module):
         # 那么在使用1-shot进行测试时呢？
         
         
+        #--------------------------end-----------------------------#
+        
+        #----------------------DAnA的的support attention-------------------------#
+        dim_in = planes
+        gamma = neighbor_k
+        self.channel_gamma = gamma
+        self.rpn_channel_k_layer = nn.Linear(dim_in, 1)
+        init.normal_(self.rpn_channel_k_layer.weight, std=0.01)
+        init.constant_(self.rpn_channel_k_layer.bias, 0)
+        ################
+        """
+        self.rpn_unary_layer = nn.Linear(dim_in, 1)
+        init.normal_(self.rpn_unary_layer.weight, std=0.01)
+        init.constant_(self.rpn_unary_layer.bias, 0)
+        self.rcnn_unary_layer = nn.Linear(dim_in, 1)
+        init.normal_(self.rcnn_unary_layer.weight, std=0.01)
+        init.constant_(self.rcnn_unary_layer.bias, 0)
+        """
         #--------------------------end-----------------------------#
 
         if temp_learnable:
@@ -106,10 +125,80 @@ class MetaBaseline(nn.Module):
             input1 =  x_query_aft.contiguous().permute(0,1,3,4,2) # [b,q_num,c,h,w]->[b,q_num,h,w,c]
             input2 = x_shot_aft.contiguous().permute(0,1,2,4,5,3)# [4,5,1,640,5,5]->[4,5,1,5,5,640] [b,way,shot,c,h,w] -> [b*shot*way,h*w,dimension]
             
-            Similarity,Q_S_List = self.dense_att_similarity(input1 ,input2,self.neighbor_k)# query,support
+            Similarity,Q_S_List = self.bab_att(input1 ,input2,self.neighbor_k)# query,support
             logits = Similarity
         
         return logits # [batch,q_num,way,]
+        
+
+#============ DAnA的的support attention  ================#
+    def bab_att(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim
+        # 经过校准，输入必须是 dim在最后一维
+        # input1 [b,q_num,h,w,dimension]
+        # input2 [b,shot,way,h,w,dimension]
+        
+        Similarity_list = []
+        Q_S_List = []
+        
+        b,q_num,h,w,c = input1.size()
+        _,way,shot,_,_,_ = input2.size()
+        
+        input1_batch = input1.contiguous().view(b, q_num,h*w,c )
+        input2_batch = input2.contiguous().view(b,way*shot,h*w,c)
+        #  input1_batch  [b,q_num,h*w,dimension]
+        #  input2_batch  [b,way*shot,h*w,dimension]
+        
+        for i in range(b):
+            input1 = input1_batch[i] # [q_num,h*w,dimension]
+            input2 = input2_batch[i] # [way*shot,h*w,dimension]
+
+            # L2 Normalization
+            input1_norm = torch.norm(input1, 2, 2, True)
+            input2_norm = torch.norm(input2, 2, 2, True)
+            
+            input1_after_norm=input1/input1_norm
+            input2_after_norm=input2/input2_norm
+            
+            query = input1_after_norm.contiguous().view(q_num,h,w,c)
+            support = input2_after_norm.contiguous().view(way,shot,h,w,c)
+            
+            support_set= support.contiguous().view(way,shot*h*w,c)
+            query_set= query.contiguous().view(q_num,h*w,c)
+            
+            sim = torch.zeros(q_num,way).cuda()
+            # 每个local找出最接近的25个local，用这25个作为weight,然后挑选出最重要的25个local
+            k = shot*neighbor_k
+            for j in range(way):
+                support_curr_set =  support_set[j,:,:] #[shot*h*w,c]
+                support_shot_set =  support_curr_set.contiguous().view(shot,h*w,c) # [shot,h*w,c]
+                inter_sim = []
+                support_way_list = []
+                for k in range(shot):
+                    # support channel enhance
+                    single_s_mat =  support_shot_set[k] # [h*w,c]
+                    support_spatial_weight = self.rpn_channel_k_layer(single_s_mat) # [5,5,1]
+                    support_spatial_weight = F.softmax(support_spatial_weight, 1)
+                    support_channel_global = torch.bmm(support_spatial_weight.transpose(1, 2), single_s_mat)  # [5, 1, 640]
+                    single_s_mat = single_s_mat + self.channel_gamma * F.leaky_relu(support_channel_global) # [5, 5, 640]
+                    support_mean = single_s_mat.contiguous().view(h*w,c).mean(dim=0) #[c]
+                    support_way_list.append(support_mean)
+                support_way = torch.stack(support_way_list) # [shot,c]
+                
+                # 计算query和当前way的相似度
+                feat =  support_way.mean(dim=0) # [c]
+                query_mean = query_set.mean(dim=1) # [q_num,c]
+                sim_shot = torch.mm(query_mean,feat.unsqueeze(dim=1)).view(q_num) # [q_num]
+                
+                sim[:,j]= sim_way
+                
+            Similarity_list.append(sim)
+        
+        Similarity=torch.stack(Similarity_list) #[4,75,5]
+        return Similarity,Q_S_List
+
+
+
+
         
 #============ support挑选出 top5, query基于support最重要的特征加权 ,no 超参-》求和-》norm  ================#
     def dense_att_similarity(self,input1,input2,neighbor_k): # 仅计算local和global cos的sim

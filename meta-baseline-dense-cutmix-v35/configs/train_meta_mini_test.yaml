@@ -9,7 +9,7 @@ model: meta-baseline-dense
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
-    method: dense_match
+    method: cos
     neighbor_k: 5
     batch_size : 2
     shot_num : 5
