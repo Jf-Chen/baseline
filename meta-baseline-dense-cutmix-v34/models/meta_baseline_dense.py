@@ -13,10 +13,13 @@ import pdb
 class MetaBaseline(nn.Module):
 
     def __init__(self, encoder, encoder_args={},temp=10., temp_learnable=True,
+                    classifier = 'dense-linear-classifier',classifier_args={n_classes: 64},
+                    gamma = 0.1,
                     method='M2L_cos_dn4', neighbor_k=5, batch_size = 2, shot_num = 5, num_classes =5):
         super().__init__()
         self.encoder = models.make(encoder, **encoder_args)
         self.method = method
+        self.classifier = models.make(classifier, **classifier_args)
         #----------------------------------------------------------#
         self.neighbor_k = neighbor_k
         self.batch_size = batch_size
@@ -125,8 +128,9 @@ class MetaBaseline(nn.Module):
             input1 =  x_query_aft.contiguous().permute(0,1,3,4,2) # [b,q_num,c,h,w]->[b,q_num,h,w,c]
             input2 = x_shot_aft.contiguous().permute(0,1,2,4,5,3)# [4,5,1,640,5,5]->[4,5,1,5,5,640] [b,way,shot,c,h,w] -> [b*shot*way,h*w,dimension]
             
-            Similarity,Q_S_List = self.bab_att(input1 ,input2,self.neighbor_k)# query,support
+            Similarity,Change_loss = self.bab_att(input1 ,input2,self.neighbor_k)# query,support
             logits = Similarity
+            return logits,Change_loss # 这里的Q_S_List 是其他约束项
         
         return logits # [batch,q_num,way,]
         
@@ -138,7 +142,7 @@ class MetaBaseline(nn.Module):
         # input2 [b,shot,way,h,w,dimension]
         
         Similarity_list = []
-        Q_S_List = []
+        Change_List = []
         
         b,q_num,h,w,c = input1.size()
         _,way,shot,_,_,_ = input2.size()
@@ -167,34 +171,64 @@ class MetaBaseline(nn.Module):
             
             sim = torch.zeros(q_num,way).cuda()
             # 每个local找出最接近的25个local，用这25个作为weight,然后挑选出最重要的25个local
-            k = shot*neighbor_k
+            change =  torch.zeros(way,shot).cuda()
+            
             for j in range(way):
                 support_curr_set =  support_set[j,:,:] #[shot*h*w,c]
                 support_shot_set =  support_curr_set.contiguous().view(shot,h*w,c) # [shot,h*w,c]
                 inter_sim = []
                 support_way_list = []
+                change_way_list = []
                 for k in range(shot):
                     # support channel enhance
                     single_s_mat =  support_shot_set[k] # [h*w,c]
-                    support_spatial_weight = self.rpn_channel_k_layer(single_s_mat) # [5,5,1]
-                    support_spatial_weight = F.softmax(support_spatial_weight, 1)
-                    support_channel_global = torch.bmm(support_spatial_weight.transpose(1, 2), single_s_mat)  # [5, 1, 640]
-                    single_s_mat = single_s_mat + self.channel_gamma * F.leaky_relu(support_channel_global) # [5, 5, 640]
-                    support_mean = single_s_mat.contiguous().view(h*w,c).mean(dim=0) #[c]
+                    support_spatial_weight = self.rpn_channel_k_layer(single_s_mat) # [25,1]
+                    support_spatial_weight = F.softmax(support_spatial_weight, 1) 
+                    support_channel_global = torch.mm(support_spatial_weight.transpose(0, 1), single_s_mat)  # [1, 640]
+                    single_s_mat = single_s_mat + self.channel_gamma * F.leaky_relu(support_channel_global) # [25, 640]
+                    support_mean = single_s_mat.contiguous().view(h*w,c).mean(dim=0) #[640]
                     support_way_list.append(support_mean)
+                    
+                    # 保持local在调整前后 在linear上的一致性
+                    # linear的输入是[b,c,h,w]
+                    # 输出是[b*h*w,64]
+                    #---- 调整后的局部
+                    local_1 = single_s_mat.permute(0,1) # [c,h*w]
+                    local_2 = local_1.contiguous().view(c,h,w).unsqueeze(dim=0) # [1,c,h,w]
+                    y_local = self.linear(local_2) # [1*h*w,64]
+                    # ---- 调整前的局部
+                    before_0 =  support_shot_set[k] # [h*w,c]
+                    before_1 = before_0.permute(0,1) # [c,h*w]
+                    beforel_2 = before_1.contiguous().view(c,h,w).unsqueeze(dim=0) # [1,c,h,w]
+                    y_before = self.linear(before_2) # [1*h*w,64]
+                    # ---- 二者的相似度
+                    cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+                    output = cos(y_local, y_before) # [h*w,1]
+                    curr_change_sim = torch.sum(output,dim=0) # [1]
+                    change_way_list.append(curr_change_sim)
+                    
+                    
                 support_way = torch.stack(support_way_list) # [shot,c]
+                change_way = torch.stack(change_way_list) # [shot,1]
                 
                 # 计算query和当前way的相似度
                 feat =  support_way.mean(dim=0) # [c]
                 query_mean = query_set.mean(dim=1) # [q_num,c]
-                sim_shot = torch.mm(query_mean,feat.unsqueeze(dim=1)).view(q_num) # [q_num]
+                sim_way = torch.mm(query_mean,feat.unsqueeze(dim=1)).view(q_num) # [q_num]
                 
                 sim[:,j]= sim_way
+                change[:,j]= change_way.contiguous().view(shot) #[shot]
+                
                 
             Similarity_list.append(sim)
+            Change_List.append(change)
         
         Similarity=torch.stack(Similarity_list) #[4,75,5]
-        return Similarity,Q_S_List
+        Change = torch.stack(Change_List) #[4,way,shot]
+        Change_loss = Change.sum(dim=0).sum(dim=0)/(b*way*shot)
+        
+        
+        return Similarity,Change_loss
 
 
 

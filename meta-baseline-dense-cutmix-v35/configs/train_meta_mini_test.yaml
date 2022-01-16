@@ -9,6 +9,8 @@ model: meta-baseline-dense
 model_args:
     encoder: resnet12-wide-dense
     encoder_args: {}
+    classifier: dense-linear-classifier
+    classifier_args: {n_classes: 64}
     method: cos
     neighbor_k: 5
     batch_size : 2

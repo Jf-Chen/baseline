@@ -36,6 +36,7 @@ num_workers: 2
 pin_memory : false
 beta: 0.2
 cutmix_prob: -1
+freeze_epoch: 20
 #---------end---------#
 
 # 修改的部分 max_epoch: 1

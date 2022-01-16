@@ -46,6 +46,9 @@ def main(config):
     cutmix_prob = 0.5 # cutmix_prob
     if config.get('cutmix_prob'):
         cutmix_prob = config['cutmix_prob']
+    freeze_epoch = 0
+    if config.get('freeze_epoch'):
+        freeze_epoch = config['freeze_epoch']
     #---------end----------#
 
     #### Dataset ####
@@ -127,6 +130,9 @@ def main(config):
         if config.get('load_encoder'):
             encoder = models.load(torch.load(config['load_encoder'])).encoder
             model.encoder.load_state_dict(encoder.state_dict())
+            classifier = models.load(torch.load(config['load_encoder'])).classifier
+            model.classifier.load_state_dict(classifier.state_dict())
+        
 
     if config.get('_parallel'):
         model = nn.DataParallel(model)
@@ -163,6 +169,16 @@ def main(config):
         if config.get('freeze_bn'):
             utils.freeze_bn(model) 
         writer.add_scalar('lr', optimizer.param_groups[0]['lr'], epoch)
+        
+        if (epoch <= freeze_epoch):
+            for child in model.encoder.children():
+                for param in child.parameters():
+                    param.requires_grad = False
+                
+        elif (epoch == (freeze_epoch+1)):
+            for child in model.encoder.children():
+                for param in child.parameters():
+                    param.requires_grad = True
 
         np.random.seed(epoch)
         for data, _ in tqdm(train_loader, desc='train', leave=False):
@@ -209,9 +225,9 @@ def main(config):
                 
             else:
                 # compute output
-                logits =  model(support, query) 
+                logits,Change_loss =  model(support, query) 
                 logits = logits.view(-1,n_train_way)
-                loss = criterion(logits, target)
+                loss = criterion(logits, target)+Change_loss
                 
                 acc = utils.compute_acc(logits, target)
 
@@ -256,10 +272,10 @@ def main(config):
                     target = label
                     
                     
-                    logits  =  model(support, query)
+                    logits,Change_loss  =  model(support, query)
                     logits = logits.view(-1, n_way)
 
-                    loss = criterion(logits, target)
+                    loss = criterion(logits, target)+Change_loss
                     
                     acc = utils.compute_acc(logits, target)
                     
