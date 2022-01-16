@@ -90,7 +90,7 @@ def main(config):
                     label = fs.make_nk_label(n_way, n_query,
                             ep_per_batch=ep_per_batch).cuda()
                             
-                    logits =  model(x_shot, x_query)
+                    logits,Change_loss =  model(x_shot, x_query)
                     logits = logits.view(-1,n_way)
                     loss = criterion(logits, label)
                     

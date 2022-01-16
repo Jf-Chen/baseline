@@ -13,7 +13,7 @@ import pdb
 class MetaBaseline(nn.Module):
 
     def __init__(self, encoder, encoder_args={},temp=10., temp_learnable=True,
-                    classifier = 'dense-linear-classifier',classifier_args={n_classes: 64},
+                    classifier = 'dense-linear-classifier',classifier_args={"n_classes": 64},
                     gamma = 0.1,
                     method='M2L_cos_dn4', neighbor_k=5, batch_size = 2, shot_num = 5, num_classes =5):
         super().__init__()
@@ -171,7 +171,7 @@ class MetaBaseline(nn.Module):
             
             sim = torch.zeros(q_num,way).cuda()
             # 每个local找出最接近的25个local，用这25个作为weight,然后挑选出最重要的25个local
-            change =  torch.zeros(way,shot).cuda()
+            change =  torch.zeros(shot,way,).cuda()
             
             for j in range(way):
                 support_curr_set =  support_set[j,:,:] #[shot*h*w,c]
@@ -199,7 +199,7 @@ class MetaBaseline(nn.Module):
                     # ---- 调整前的局部
                     before_0 =  support_shot_set[k] # [h*w,c]
                     before_1 = before_0.permute(0,1) # [c,h*w]
-                    beforel_2 = before_1.contiguous().view(c,h,w).unsqueeze(dim=0) # [1,c,h,w]
+                    before_2 = before_1.contiguous().view(c,h,w).unsqueeze(dim=0) # [1,c,h,w]
                     y_before = self.linear(before_2) # [1*h*w,64]
                     # ---- 二者的相似度
                     cos = nn.CosineSimilarity(dim=1, eps=1e-6)
@@ -209,7 +209,7 @@ class MetaBaseline(nn.Module):
                     
                     
                 support_way = torch.stack(support_way_list) # [shot,c]
-                change_way = torch.stack(change_way_list) # [shot,1]
+                change_way = torch.stack(change_way_list).contiguous().view(shot,1) # [shot,1]
                 
                 # 计算query和当前way的相似度
                 feat =  support_way.mean(dim=0) # [c]
@@ -225,7 +225,7 @@ class MetaBaseline(nn.Module):
         
         Similarity=torch.stack(Similarity_list) #[4,75,5]
         Change = torch.stack(Change_List) #[4,way,shot]
-        Change_loss = Change.sum(dim=0).sum(dim=0)/(b*way*shot)
+        Change_loss = Change.sum(dim=0).sum(dim=0).sum(dim=0)/(b*way*shot*h*w)
         
         
         return Similarity,Change_loss

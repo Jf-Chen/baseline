@@ -174,7 +174,11 @@ def main(config):
             for child in model.encoder.children():
                 for param in child.parameters():
                     param.requires_grad = False
-                
+            for child in model.classifier.children():
+                for param in child.parameters():
+                    param.requires_grad = False
+        
+        
         elif (epoch == (freeze_epoch+1)):
             for child in model.encoder.children():
                 for param in child.parameters():
